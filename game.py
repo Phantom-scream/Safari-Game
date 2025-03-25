@@ -1,34 +1,68 @@
 import random
 import pygame
-from animal import Animal
-from obstacles import Water, Obstacle
-from plant import Plant
-from settings import SCREEN_WIDTH, SCREEN_HEIGHT, NUM_ANIMALS, NUM_WATER_SOURCES, NUM_OBSTACLES, NUM_PLANTS
+from gamelogic.settings import SCREEN_WIDTH, SCREEN_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT
+from gamelogic.time_manager import TimeManager
+from ui.ui_manager import UIManager
+from gamelogic.game_world import GameWorld
+from gamelogic.economy import Economy
+from ui.renderer import Renderer
 
-class GameWorld:
+class Game:
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        self.animals = [Animal(random.randint(50, width-50), random.randint(50, height-50)) for _ in range(NUM_ANIMALS)]
-        self.water_sources = [Water(random.randint(50, width-50), random.randint(50, height-50)) for _ in range(NUM_WATER_SOURCES)]
-        self.obstacles = [Obstacle(random.randint(50, width-50), random.randint(50, height-50)) for _ in range(NUM_OBSTACLES)]
-        self.plants = [Plant(random.randint(50, width-50), random.randint(50, height-50)) for _ in range(NUM_PLANTS)]
+        self.timeManager = TimeManager()
+        self.world = GameWorld(WORLD_WIDTH, WORLD_HEIGHT)
+        self.economy = Economy()
+        self.renderer = Renderer(WORLD_WIDTH, WORLD_HEIGHT, width, height)
+        self.uiManager = UIManager()
 
-    def update(self):
+    def update(self, deltaTime: float):
         """Update all objects (animals, etc.)"""
-        for animal in self.animals:
-            animal.update(self)
+        self.timeManager.update()
+        deltaTime = self.timeManager.get_delta_time()
 
-    def draw(self, screen):
-        """Draw all objects as colored blocks"""
-        for water in self.water_sources:
-            water.draw(screen)
+        self.world.update(deltaTime)
+        self.economy.update(deltaTime)
+        self.renderer.handleInput(deltaTime)
 
-        for obstacle in self.obstacles:
-            obstacle.draw(screen)
+    def render(self, surface):
+        """Render all objects"""
+        surface.fill((238, 214, 175))  # desert background
+        self.renderer.render(self)
+        self.uiManager.render(surface)
 
-        for plant in self.plants:
-            plant.draw(screen)
+    def handleEvents(self):
+        """Handle input events"""
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return False
+        return True
 
-        for animal in self.animals:
-            animal.draw(screen)
+if __name__ == "__main__":
+    # Initialize Pygame
+    pygame.init()
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    clock = pygame.time.Clock()
+
+    # Create game world
+    game = Game(SCREEN_WIDTH, SCREEN_HEIGHT)
+
+    running = True
+    while running:
+        # Handle events
+        running = game.handleEvents()
+
+        # Update world
+        game.update(clock.get_time() / 1000.0)  # Pass delta time in seconds
+
+        # Draw world
+        game.render(screen)
+
+        pygame.display.flip()
+        clock.tick(60)  # Limit to 60 FPS
+
+    pygame.quit()
