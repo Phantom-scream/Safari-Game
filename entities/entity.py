@@ -7,6 +7,7 @@ class Entity(ABC):
         self.position = position
         self.size = size
         self.entityType = entityType
+        self.isrect = False
 
     @abstractmethod
     def update(self, deltaTime: float, world: 'GameWorld'):
