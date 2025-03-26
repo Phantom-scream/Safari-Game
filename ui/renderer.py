@@ -19,8 +19,11 @@ class Renderer:
         for entity_list in entities.values():
             for entity in entity_list:
                 screenPos = self.camera.worldToScreen(entity.position)
-                pygame.draw.rect(pygame.display.get_surface(), entity.color, (screenPos.x, screenPos.y, entity.size, entity.size))
-
+                if (entity.isrect == False):
+                    pygame.draw.rect(pygame.display.get_surface(), entity.color, (screenPos.x, screenPos.y, entity.size, entity.size))
+                elif (entity.isrect == True):
+                    pygame.draw.circle(pygame.display.get_surface(), entity.color, (int(screenPos.x), int(screenPos.y)), int(entity.size
+                    / 2))
     def renderUI(self, uiManager):
         uiManager.render(pygame.display.get_surface())
 

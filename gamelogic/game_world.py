@@ -1,12 +1,13 @@
 from typing import List, Dict
 import pygame
 from entities.animal import Animal
+from entities.poacher import Poacher
 from entities.waterbody import WaterBody
 from entities.plant import Plant
 from entities.herbivore import Bison, Zebra, Antelope
 from entities.carnivore import Lion, Hyena, Crocodile
 from entities.entity import Entity
-from gamelogic.settings import NUM_ANIMALS, NUM_WATER_SOURCES, NUM_PLANTS
+from gamelogic.settings import NUM_ANIMALS, NUM_WATER_SOURCES, NUM_PLANTS, NUM_POACHERS
 from ui.vector2 import Vector2
 import random
 
@@ -15,14 +16,15 @@ class GameWorld:
         self.width = width
         self.height = height
         self.entities: Dict[str, List[Entity]] = {
-            'Bison': [Bison(Vector2(random.randint(0, width), random.randint(0, height))) for _ in range(NUM_ANIMALS // 6)],
-            'Zebra': [Zebra(Vector2(random.randint(0, width), random.randint(0, height))) for _ in range(NUM_ANIMALS // 6)],
-            'Antelope': [Antelope(Vector2(random.randint(0, width), random.randint(0, height))) for _ in range(NUM_ANIMALS // 6)],
-            'Lion': [Lion(Vector2(random.randint(0, width), random.randint(0, height))) for _ in range(NUM_ANIMALS // 6)],
-            'Hyena': [Hyena(Vector2(random.randint(0, width), random.randint(0, height))) for _ in range(NUM_ANIMALS // 6)],
-            'Crocodile': [Crocodile(Vector2(random.randint(0, width), random.randint(0, height))) for _ in range(NUM_ANIMALS // 6)],
+            'Bison': [Bison(Vector2(random.randint(0, width), random.randint(0, height))) for _ in range(Bison.get_number())],
+            'Zebra': [Zebra(Vector2(random.randint(0, width), random.randint(0, height))) for _ in range(Zebra.get_number())],
+            'Antelope': [Antelope(Vector2(random.randint(0, width), random.randint(0, height))) for _ in range(Antelope.get_number())],
+            'Lion': [Lion(Vector2(random.randint(0, width), random.randint(0, height))) for _ in range(Lion.get_number())],
+            'Hyena': [Hyena(Vector2(random.randint(0, width), random.randint(0, height))) for _ in range(Hyena.get_number())],
+            'Crocodile': [Crocodile(Vector2(random.randint(0, width), random.randint(0, height))) for _ in range(Crocodile.get_number())],
             'WaterBody': [WaterBody(Vector2(random.randint(0, width), random.randint(0, height)), 20) for _ in range(NUM_WATER_SOURCES)],
-            'Plant': [Plant(Vector2(random.randint(0, width), random.randint(0, height)), 15, 100) for _ in range(NUM_PLANTS)]
+            'Plant': [Plant(Vector2(random.randint(0, width), random.randint(0, height)), 15, 100) for _ in range(NUM_PLANTS)],
+            'Poacher' : [Poacher(Vector2(random.randint(0, width), random.randint(0, height)), 20, 2.5) for _ in range(NUM_POACHERS)]
         }
 
     def addEntity(self, entity: Entity):

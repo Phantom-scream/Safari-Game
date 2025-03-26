@@ -5,7 +5,6 @@ __pycache__/
 dist/
 build/
 *.egg-info/
-venv/
 env/
 ENV/
 .idea/
@@ -13,4 +12,3 @@ ENV/
 *.swp
 *.swo
 .env
-.venv
