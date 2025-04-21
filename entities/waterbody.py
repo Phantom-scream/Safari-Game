@@ -16,6 +16,5 @@ class WaterBody(Entity):
         pass
 
     def render(self, surface: pygame.Surface, camera: 'Camera'):
-        for cell in self.connected_cells:
-            screenPos = camera.worldToScreen(cell)
-            pygame.draw.rect(surface, self.color, (screenPos.x, screenPos.y, self.size, self.size))
+        screenPos = camera.worldToScreen(self.position)
+        pygame.draw.rect(surface, self.color, (screenPos.x, screenPos.y, self.size, self.size))

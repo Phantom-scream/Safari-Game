@@ -36,11 +36,18 @@ class Camera:
     def handleInput(self, deltaTime: float):
         keys = pygame.key.get_pressed()
         moveSpeed = 200 * deltaTime
+        # Adjust these values to prevent showing areas outside the world
+        min_x = self.viewportWidth / 2
+        min_y = self.viewportHeight / 2
+        max_x = self.worldWidth - self.viewportWidth 
+        max_y = self.worldHeight - self.viewportHeight 
+        
         if keys[pygame.K_LEFT]:
-            self.position.x = max(0, self.position.x - moveSpeed)
+            self.position.x = max(min_x, self.position.x - moveSpeed)
         if keys[pygame.K_RIGHT]:
-            self.position.x = min(self.worldWidth, self.position.x + moveSpeed)
+            self.position.x = min(max_x, self.position.x + moveSpeed)
         if keys[pygame.K_UP]:
-            self.position.y = max(0, self.position.y - moveSpeed)
+            self.position.y = max(min_y, self.position.y - moveSpeed)
         if keys[pygame.K_DOWN]:
-            self.position.y = min(self.worldHeight, self.position.y + moveSpeed)
+            self.position.y = min(max_y, self.position.y + moveSpeed)
+
