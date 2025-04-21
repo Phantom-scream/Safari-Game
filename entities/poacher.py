@@ -22,8 +22,10 @@ class Poacher(Entity):
         self.last_hunt_time = time.time()
         self.has_captured_animal = None  # Store reference to captured animal
         self.escape_point = None  # Point where poacher will escape with captured animal
+        self.return_point = None
         self._world = None
         self.current_path = []
+        self.state = "hunting"
 
     def astar_pathfinding(self, start: Vector2, goal: Vector2, world: 'GameWorld') -> list[Vector2]:
         """A* pathfinding implementation for poacher movement"""
@@ -65,21 +67,6 @@ class Poacher(Entity):
     
         return []  # No path found
 
-    def move(self):
-        """Simple movement without pathfinding"""
-        if self.position.distanceTo(self.target) > 2:
-            direction = self.target.subtract(self.position).normalize()
-            self.position = self.position.add(Vector2(
-                direction.x * self.speed,
-                direction.y * self.speed
-            ))
-        else:
-            # Set new random target when reached current target
-            self.target = Vector2(
-                random.uniform(0, WORLD_WIDTH),
-                random.uniform(0, WORLD_HEIGHT)
-            )
-
     def check_visibility(self, world):
         """Check if poacher should be visible based on nearby tourists/rangers"""
         for entity_type in ['Tourist', 'Ranger']:  # You'll need to implement these classes
@@ -92,74 +79,155 @@ class Poacher(Entity):
         self.visible = False
 
     def hunt(self, world):
-        """Poacher can either shoot animals from distance or capture them"""
         current_time = time.time()
-        if current_time - self.last_hunt_time < 7:  # Cooldown between hunting attempts
+        if current_time - self.last_hunt_time < 7:
             return
 
         # If poacher already has a captured animal, handle escape logic
         if self.has_captured_animal:
             if self.escape_point is None:
-                # Set escape point at the nearest map border
                 if self.position.x < WORLD_WIDTH/2:
-                    escape_x = 0  # Escape to left border
+                    escape_x = 0
                 else:
-                    escape_x = WORLD_WIDTH  # Escape to right border
+                    escape_x = WORLD_WIDTH
                 self.escape_point = Vector2(escape_x, random.randint(0, WORLD_HEIGHT))
-        
             self.target = self.escape_point
-        
-            if self.position.distanceTo(self.escape_point) < 10:
-                entity_type = type(self.has_captured_animal).__name__
-                if (entity_type in world.entities and 
-                    self.has_captured_animal in world.entities[entity_type]):
-                    world.removeEntity(self.has_captured_animal)
-                    self.has_captured_animal = None
-                    self.escape_point = None
-                    print("Poacher escaped with captured animal!")
             return
 
         # Find closest animal to hunt
         closest_animal = None
         closest_distance = float('inf')
-    
-        # Priority order for hunting (smaller animals first)
         target_animals = ['Antelope', 'Zebra', 'Bison', 'Lion', 'Hyena', 'Crocodile']
-    
         for entity_type in target_animals:
             for animal in list(world.entities.get(entity_type, [])):
                 distance = self.position.distanceTo(animal.position)
-            
                 if distance < closest_distance:
                     closest_distance = distance
                     closest_animal = animal
 
-        # If found a target animal, try to hunt it
         if closest_animal:
-            if closest_distance < self.capture_range:
-                # Capture animal if very close
-                self.has_captured_animal = closest_animal
-                print(f"Poacher captured {closest_animal.entityType} at {closest_animal.position}")
-                self.last_hunt_time = current_time
-            
-            elif closest_distance < self.hunting_range:
-                # Shoot animal if within range
-                world.removeEntity(closest_animal)
-                print(f"Poacher shot {closest_animal.entityType} at {closest_animal.position}")
-                self.last_hunt_time = current_time
+            self.has_captured_animal = closest_animal
+            print(f"Poacher captured {closest_animal.entityType} at {closest_animal.position}")
+            self.last_hunt_time = current_time
+            self.state = "escaping"
+            if self.position.x < WORLD_WIDTH / 2:
+                escape_x = -20
             else:
-                # Move towards the animal if it's spotted
-                self.target = closest_animal.position
+                escape_x = WORLD_WIDTH + 20
+            self.escape_point = Vector2(escape_x, random.uniform(0, WORLD_HEIGHT))
+            self.target = self.escape_point
+
+    def move(self):
+        USE_PATHFINDING = False  # Set to True to enable A* pathfinding
+
+        # Determine the current destination based on state
+        if self.state == "hunting":
+            destination = self.target
+        elif self.state == "escaping" and self.escape_point:
+            destination = self.escape_point
+        elif self.state == "returning" and self.return_point:
+            destination = self.return_point
+        else:
+            # Invalid state, reset everything
+            self.state = "hunting"
+            self.has_captured_animal = None
+            self.escape_point = None
+            self.return_point = None
+            self.target = Vector2(
+                random.uniform(0, WORLD_WIDTH),
+                random.uniform(0, WORLD_HEIGHT)
+            )
+            self.current_path = []
+            return
+
+        # Pathfinding logic
+        if USE_PATHFINDING:
+            # Recalculate path if needed
+            if not self.current_path or (self.current_path and self.current_path[-1].distanceTo(destination) > 10):
+                self.current_path = self.astar_pathfinding(self.position, destination, self._world)
+
+            # Follow the path if it exists
+            if self.current_path:
+                next_point = self.current_path[0]
+                if self.position.distanceTo(next_point) < 2:
+                    self.current_path.pop(0)
+                    if not self.current_path:
+                        return
+                    next_point = self.current_path[0]
+                direction = next_point.subtract(self.position).normalize()
+                self.position = self.position.add(Vector2(direction.x * self.speed, direction.y * self.speed))
+            else:
+                # Fallback to direct movement if no path found
+                direction = destination.subtract(self.position).normalize()
+                self.position = self.position.add(Vector2(direction.x * self.speed, direction.y * self.speed))
+        else:
+            # Original direct movement logic
+            if self.position.distanceTo(destination) > 2:
+                direction = destination.subtract(self.position).normalize()
+                self.position = self.position.add(Vector2(direction.x * self.speed, direction.y * self.speed))
+            else:
+                if self.state == "hunting":
+                    self.target = Vector2(
+                        random.uniform(0, WORLD_WIDTH),
+                        random.uniform(0, WORLD_HEIGHT)
+                    )
+                elif self.state == "escaping":
+                    # Arrived at escape point (outside world), reset to returning
+                    self.has_captured_animal = None
+                    self.escape_point = None
+                    self.state = "returning"
+                    self.return_point = Vector2(
+                        random.uniform(0, WORLD_WIDTH),
+                        random.uniform(0, WORLD_HEIGHT)
+                    )
+                    self.target = self.return_point
+                    self.current_path = []
+                elif self.state == "returning":
+                    # Arrived at return point, reset to hunting
+                    self.state = "hunting"
+                    self.return_point = None
+                    self.target = Vector2(
+                        random.uniform(0, WORLD_WIDTH),
+                        random.uniform(0, WORLD_HEIGHT)
+                    )
+                    self.current_path = []
 
     def update(self, deltaTime: float, world: 'GameWorld'):
         self._world = world
         self.check_visibility(world)
-        self.move()  # Using simple movement instead of A* pathfinding
-        
-        if not self.visible:  # Only hunt when not visible
+
+        # If captured animal is gone, reset state
+        if self.has_captured_animal:
+            entity_type = type(self.has_captured_animal).__name__
+            if (entity_type not in world.entities or
+                self.has_captured_animal not in world.entities[entity_type]):
+                self.has_captured_animal = None
+                self.state = "returning"
+                self.escape_point = None
+                self.return_point = Vector2(
+                    random.uniform(0, WORLD_WIDTH),
+                    random.uniform(0, WORLD_HEIGHT)
+                )
+                self.target = self.return_point
+                self.current_path = []
+
+        # --- Failsafe: If stuck in a state with no target, reset to hunting ---
+        if (self.state == "escaping" and not self.escape_point) or \
+        (self.state == "returning" and not self.return_point) or \
+        (self.state not in ["hunting", "escaping", "returning"]):
+            self.state = "hunting"
+            self.has_captured_animal = None
+            self.escape_point = None
+            self.return_point = None
+            self.target = Vector2(
+                random.uniform(0, WORLD_WIDTH),
+                random.uniform(0, WORLD_HEIGHT)
+            )
+            self.current_path = []
+
+        self.move()
+        if self.state == "hunting":
             self.hunt(world)
-        
-        # Update captured animal position if exists
         if self.has_captured_animal:
             self.has_captured_animal.position = self.position
 

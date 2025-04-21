@@ -17,3 +17,9 @@ class Vector2:
 
     def distanceTo(self, other: 'Vector2') -> float:
         return ((self.x - other.x) ** 2 + (self.y - other.y) ** 2) ** 0.5
+    
+    def __eq__(self, other):
+        return isinstance(other, Vector2) and self.x == other.x and self.y == other.y
+
+    def __hash__(self):
+        return hash((round(self.x, 4), round(self.y, 4)))
