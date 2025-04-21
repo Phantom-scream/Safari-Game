@@ -15,7 +15,7 @@ class Poacher(Entity):
             random.uniform(0, WORLD_HEIGHT)
         )
         self.color = (255, 0, 0)  # Red color for poachers
-        self.visible = False  # Start as invisible
+        self.visible = True  # Start as invisible
         self.detection_range = 150  # Range at which tourists/rangers can see the poacher
         self.hunting_range = 100  # Range for shooting animals
         self.capture_range = 40  # Range for capturing animals
@@ -69,14 +69,15 @@ class Poacher(Entity):
 
     def check_visibility(self, world):
         """Check if poacher should be visible based on nearby tourists/rangers"""
-        for entity_type in ['Tourist', 'Ranger']:  # You'll need to implement these classes
-            if entity_type in world.entities:
-                for observer in world.entities[entity_type]:
-                    distance = self.position.distanceTo(observer.position)
-                    if distance < self.detection_range:
-                        self.visible = True
-                        return
-        self.visible = False
+        # for entity_type in ['Tourist', 'Ranger']:  # You'll need to implement these classes
+        #     if entity_type in world.entities:
+        #         for observer in world.entities[entity_type]:
+        #             distance = self.position.distanceTo(observer.position)
+        #             if distance < self.detection_range:
+        #                 self.visible = True
+        #                 return
+        # self.visible = False
+        self.visible = True
 
     def hunt(self, world):
         current_time = time.time()
