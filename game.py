@@ -1,4 +1,6 @@
 import random
+import time
+random.seed(time.time())
 import pygame
 from gamelogic.settings import SCREEN_WIDTH, SCREEN_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT
 from gamelogic.time_manager import TimeManager
@@ -33,8 +35,8 @@ class Game:
 
     def render(self, surface):
         """Render all objects"""
-        surface.fill((238, 214, 175))  # desert background
-        self.renderer.render(self)
+        surface.fill((238, 214, 175))  # Desert background
+        self.renderer.render(surface, self)
         self.uiManager.render(surface)
         self.minimap.render(surface, self.renderer.camera, self.world.entities)  # Render minimap
 
@@ -91,8 +93,9 @@ if __name__ == "__main__":
 
     # Main screen
     def start_game():
-        global main_screen_active
+        global main_screen_active, game
         main_screen_active = False
+        game = Game(SCREEN_WIDTH, SCREEN_HEIGHT)  # <-- Create a new Game (and GameWorld) each time
 
     def exit_game():
         pygame.quit()
@@ -100,9 +103,6 @@ if __name__ == "__main__":
 
     main_screen = MainScreen(screen, start_game, lambda: show_rules(screen), exit_game)
     main_screen_active = True
-
-    # Create game world
-    game = Game(SCREEN_WIDTH, SCREEN_HEIGHT)
 
     while main_screen_active:
         for event in pygame.event.get():
