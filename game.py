@@ -15,6 +15,7 @@ from entities.plant import Plant
 from entities.plant import Bush 
 from entities.plant import Tree 
 from entities.animal import Animal
+import math
 
 
 class Game:
@@ -89,6 +90,10 @@ class Game:
         self.uiManager.addComponent(self.day_button)
         self.uiManager.addComponent(self.week_button)
 
+        self.time_of_day = 0.0  # 0.0 to 1.0, where 0.0 is midnight, 0.5 is noon
+        self.day_length = 120.0  # seconds for a full day-night cycle (adjust as you like)
+        self.is_night = False
+
     def zoom_in(self):
         self.renderer.camera.zoom_in()
 
@@ -102,15 +107,29 @@ class Game:
         if not self.uiManager.activeMenu:
             speed_factor = self.speed_modes[self.current_speed_mode]
             deltaTime *= speed_factor
+
+            # --- Day/Night cycle update ---
+            self.time_of_day += deltaTime / self.day_length
+            if self.time_of_day > 1.0:
+                self.time_of_day -= 1.0
+            self.is_night = self.time_of_day < 0.25 or self.time_of_day > 0.75  # Night is first/last quarter
+
             self.world.update(deltaTime)
             self.renderer.handleInput(deltaTime)
 
     def render(self, surface):
-        """Render all objects"""
         surface.fill((238, 214, 175))  # Desert background
         self.renderer.render(surface, self)
         self.uiManager.render(surface)
-        self.minimap.render(surface, self.renderer.camera, self.world, self.world.entities)  # Render minimap
+        self.minimap.render(surface, self.renderer.camera, self.world, self.world.entities)
+
+        # --- Day/Night overlay ---
+        # Calculate brightness: 1.0 at noon, 0.4 at midnight
+        brightness = 0.4 + 0.6 * (math.cos(self.time_of_day * 2 * math.pi) + 1) / 2
+        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        night_alpha = int((1.0 - brightness) * 180)  # 0 (day) to 180 (night)
+        overlay.fill((0, 0, 40, night_alpha))
+        surface.blit(overlay, (0, 0))
 
         # --- Stylish money bar (top-right corner) ---
         bar_width, bar_height = 220, 50
