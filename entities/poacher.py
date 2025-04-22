@@ -26,6 +26,7 @@ class Poacher(Entity):
         self._world = None
         self.current_path = []
         self.state = "hunting"
+        self._clear_captured_next_update = False
 
     def astar_pathfinding(self, start: Vector2, goal: Vector2, world: 'GameWorld') -> list[Vector2]:
         """A* pathfinding implementation for poacher movement"""
@@ -87,20 +88,23 @@ class Poacher(Entity):
         # If poacher already has a captured animal, handle escape logic
         if self.has_captured_animal:
             if self.escape_point is None:
-                if self.position.x < WORLD_WIDTH/2:
-                    escape_x = 0
+                # Set escape point OUTSIDE the map
+                if self.position.x < WORLD_WIDTH / 2:
+                    escape_x = -40
                 else:
-                    escape_x = WORLD_WIDTH
-                self.escape_point = Vector2(escape_x, random.randint(0, WORLD_HEIGHT))
+                    escape_x = WORLD_WIDTH + 40
+                self.escape_point = Vector2(escape_x, random.uniform(0, WORLD_HEIGHT))
             self.target = self.escape_point
             return
 
-        # Find closest animal to hunt
+        # Find closest alive animal to hunt
         closest_animal = None
         closest_distance = float('inf')
         target_animals = ['Antelope', 'Zebra', 'Bison', 'Lion', 'Hyena', 'Crocodile']
         for entity_type in target_animals:
             for animal in list(world.entities.get(entity_type, [])):
+                if getattr(animal, "is_dead", False):
+                    continue
                 distance = self.position.distanceTo(animal.position)
                 if distance < closest_distance:
                     closest_distance = distance
@@ -108,13 +112,14 @@ class Poacher(Entity):
 
         if closest_animal:
             self.has_captured_animal = closest_animal
+            self.has_captured_animal.mark_as_dead()  # Mark as dead immediately
             print(f"Poacher captured {closest_animal.entityType} at {closest_animal.position}")
             self.last_hunt_time = current_time
             self.state = "escaping"
             if self.position.x < WORLD_WIDTH / 2:
-                escape_x = -20
+                escape_x = -40
             else:
-                escape_x = WORLD_WIDTH + 20
+                escape_x = WORLD_WIDTH + 40
             self.escape_point = Vector2(escape_x, random.uniform(0, WORLD_HEIGHT))
             self.target = self.escape_point
 
@@ -143,11 +148,8 @@ class Poacher(Entity):
 
         # Pathfinding logic
         if USE_PATHFINDING:
-            # Recalculate path if needed
             if not self.current_path or (self.current_path and self.current_path[-1].distanceTo(destination) > 10):
                 self.current_path = self.astar_pathfinding(self.position, destination, self._world)
-
-            # Follow the path if it exists
             if self.current_path:
                 next_point = self.current_path[0]
                 if self.position.distanceTo(next_point) < 2:
@@ -158,11 +160,9 @@ class Poacher(Entity):
                 direction = next_point.subtract(self.position).normalize()
                 self.position = self.position.add(Vector2(direction.x * self.speed, direction.y * self.speed))
             else:
-                # Fallback to direct movement if no path found
                 direction = destination.subtract(self.position).normalize()
                 self.position = self.position.add(Vector2(direction.x * self.speed, direction.y * self.speed))
         else:
-            # Original direct movement logic
             if self.position.distanceTo(destination) > 2:
                 direction = destination.subtract(self.position).normalize()
                 self.position = self.position.add(Vector2(direction.x * self.speed, direction.y * self.speed))
@@ -173,16 +173,29 @@ class Poacher(Entity):
                         random.uniform(0, WORLD_HEIGHT)
                     )
                 elif self.state == "escaping":
-                    # Arrived at escape point (outside world), reset to returning
-                    self.has_captured_animal = None
-                    self.escape_point = None
-                    self.state = "returning"
-                    self.return_point = Vector2(
-                        random.uniform(0, WORLD_WIDTH),
-                        random.uniform(0, WORLD_HEIGHT)
+                    # Arrived at escape point (outside world), remove animal and reset to returning
+                    # Only remove animal if poacher is FULLY outside the map
+                    outside = (
+                        self.position.x < 0 or self.position.x > WORLD_WIDTH or
+                        self.position.y < 0 or self.position.y > WORLD_HEIGHT
                     )
-                    self.target = self.return_point
-                    self.current_path = []
+                    if outside:
+                        if self.has_captured_animal:
+                            entity_type = type(self.has_captured_animal).__name__
+                            if (entity_type in self._world.entities and
+                                self.has_captured_animal in self._world.entities[entity_type]):
+                                self._world.removeEntity(self.has_captured_animal)
+                        # Do NOT set self.has_captured_animal = None here!
+                        # Instead, set a flag to clear it after rendering
+                        self._clear_captured_next_update = True
+                        self.escape_point = None
+                        self.state = "returning"
+                        self.return_point = Vector2(
+                            random.uniform(0, WORLD_WIDTH),
+                            random.uniform(0, WORLD_HEIGHT)
+                        )
+                        self.target = self.return_point
+                        self.current_path = []
                 elif self.state == "returning":
                     # Arrived at return point, reset to hunting
                     self.state = "hunting"
@@ -212,10 +225,10 @@ class Poacher(Entity):
                 self.target = self.return_point
                 self.current_path = []
 
-        # --- Failsafe: If stuck in a state with no target, reset to hunting ---
+        # Failsafe: If stuck in a state with no target, reset to hunting
         if (self.state == "escaping" and not self.escape_point) or \
-        (self.state == "returning" and not self.return_point) or \
-        (self.state not in ["hunting", "escaping", "returning"]):
+           (self.state == "returning" and not self.return_point) or \
+           (self.state not in ["hunting", "escaping", "returning"]):
             self.state = "hunting"
             self.has_captured_animal = None
             self.escape_point = None
@@ -231,6 +244,11 @@ class Poacher(Entity):
             self.hunt(world)
         if self.has_captured_animal:
             self.has_captured_animal.position = self.position
+
+        # Clear captured animal after rendering if flagged
+        if self._clear_captured_next_update:
+            self.has_captured_animal = None
+            self._clear_captured_next_update = False
 
     def render(self, surface: pygame.Surface, camera: 'Camera'):
         if not self.visible:
