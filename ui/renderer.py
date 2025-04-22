@@ -72,9 +72,22 @@ class Renderer:
         # Draw jeeps on top of the road and water
         for jeep in entities.get("Jeep", []):
             self.render_jeep(surface, jeep)
+        # Draw Bushes (as circles), Trees (as rectangles), GrassAreas (as ellipses)
+        for bush in entities.get("Bush", []):
+            screen_pos = self.camera.worldToScreen(bush.position)
+            size = bush.size * self.camera.zoom
+            pygame.draw.circle(surface, bush.color, (int(screen_pos.x + size/2), int(screen_pos.y + size/2)), int(size/2))
+        for tree in entities.get("Tree", []):
+            screen_pos = self.camera.worldToScreen(tree.position)
+            size = tree.size * self.camera.zoom
+            pygame.draw.rect(surface, tree.color, (screen_pos.x, screen_pos.y, size, size))
+        for grass in entities.get("GrassArea", []):
+            screen_pos = self.camera.worldToScreen(grass.position)
+            size = grass.size * self.camera.zoom
+            pygame.draw.ellipse(surface, grass.color, (screen_pos.x, screen_pos.y, size, size/2))
         # Draw all other entities
         for key, entity_list in entities.items():
-            if key in ("Road", "WaterBody", "Jeep"):
+            if key in ("Road", "WaterBody", "Jeep", "Bush", "Tree", "GrassArea"):
                 continue
             for entity in entity_list:
                 entity.render(surface, self.camera)

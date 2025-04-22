@@ -11,6 +11,11 @@ from ui.renderer import Renderer
 from ui.main_screen import MainScreen
 from ui.minimap import Minimap
 from ui.ui_manager import Button
+from entities.plant import Plant 
+from entities.plant import Bush 
+from entities.plant import GrassArea
+from entities.plant import Tree 
+
 
 class Game:
     def __init__(self, width, height):
@@ -24,10 +29,9 @@ class Game:
         self.minimap = Minimap(WORLD_WIDTH, WORLD_HEIGHT, width, height)  # Add minimap
         self.running = True
 
-
-        # ...existing code...
-        self.minimap = Minimap(WORLD_WIDTH, WORLD_HEIGHT, width, height)
-        self.running = True
+        self.world.generate_terrain()
+        self.world.generate_grassy_areas()
+        self.world.place_plants()
 
         # --- Add Zoom Buttons ---
         button_width = 40
@@ -86,7 +90,33 @@ class Game:
                 self.minimap.handle_click(pygame.mouse.get_pos(), self.renderer.camera)  # Handle minimap clicks
             if self.uiManager.handleEvent(event):
                 return
-            
+
+    def place_plants(self, num_bushes=40, num_trees=30, num_grass_areas=20):
+        placed_positions = set()
+        # Place Bush and Tree only on "soil"
+        for PlantClass, count, allowed_cell in [
+            (Bush, num_bushes, "soil"),
+            (Tree, num_trees, "soil"),
+            (GrassArea, num_grass_areas, "grass")
+        ]:
+            for _ in range(count):
+                tries = 0
+                while tries < 1000:
+                    x = random.randint(0, self.grid_width - 1)
+                    y = random.randint(0, self.grid_height - 1)
+                    cell = self.terrain_grid[y][x]
+                    pos = Vector2(x * self.cell_size, y * self.cell_size)
+                    if (
+                        cell == allowed_cell
+                        and not self.is_on_road(pos)
+                        and not self.is_on_water_or_hill(pos)
+                        and (x, y) not in placed_positions
+                    ):
+                        plant = PlantClass(pos)
+                        self.entities[type(plant).__name__].append(plant)
+                        placed_positions.add((x, y))
+                        break
+                    tries += 1
 
 def show_rules(screen):
     """Display the rules screen."""
