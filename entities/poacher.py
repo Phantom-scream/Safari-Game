@@ -69,16 +69,15 @@ class Poacher(Entity):
         return []  # No path found
 
     def check_visibility(self, world):
-        """Check if poacher should be visible based on nearby tourists/rangers"""
-        # for entity_type in ['Tourist', 'Ranger']:  # You'll need to implement these classes
-        #     if entity_type in world.entities:
-        #         for observer in world.entities[entity_type]:
-        #             distance = self.position.distanceTo(observer.position)
-        #             if distance < self.detection_range:
-        #                 self.visible = True
-        #                 return
-        # self.visible = False
-        self.visible = True
+        """Poacher is visible only if a tourist is within detection range."""
+        self.visible = False  # Default to invisible
+        # Check for tourists in all jeeps
+        for jeep in world.entities.get("Jeep", []):
+            for tourist in getattr(jeep, "passengers", []):
+                # Assume jeep.position is the tourist's position
+                if self.position.distanceTo(jeep.position) < self.detection_range:
+                    self.visible = True
+                    return
 
     def hunt(self, world):
         current_time = time.time()
