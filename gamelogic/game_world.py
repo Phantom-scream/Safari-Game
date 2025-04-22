@@ -48,8 +48,11 @@ class GameWorld:
                     break
 
     def is_on_road(self, position: Vector2) -> bool:
-        road_center_y = self.height // 2
-        return abs(position.y - road_center_y) <= self.cell_size  # Now covers three rows
+        # Check if the position is close to any road tile
+        for road in self.entities["Road"]:
+            if abs(position.x - road.position.x) < self.cell_size and abs(position.y - road.position.y) < self.cell_size:
+                return True
+        return False
 
     def generate_terrain(self):
         scale = 15.0  # Controls "zoom" of the noise
@@ -91,14 +94,27 @@ class GameWorld:
                 entity.update(deltaTime, self)
 
     def add_road(self):
-        """Add a horizontal road three cells wide from left-middle to right-middle."""
-        road_center_y = self.height // 2
-        road_size = self.cell_size
-        num_cells = self.width // road_size
-        for dy in [-road_size, 0, road_size]:  # Three rows: above, center, below
-            road_y = road_center_y + dy
-            for i in range(num_cells):
-                road_x = i * road_size
-                road_pos = Vector2(road_x, road_y)
-                road = Road(road_pos, road_size)
-                self.entities["Road"].append(road)
+        """Generate a natural-looking road from left to right, only in the central 50% of the map height."""
+        road_width = 3  # Number of cells wide
+        road_x = 0
+        # Restrict vertical range to 0.25 - 0.75 of the map height
+        min_y = int(self.height * 0.25)
+        max_y = int(self.height * 0.75)
+        road_y = (min_y + max_y) // 2  # Start in the middle of allowed range
+        num_cells = self.width // self.cell_size
+
+        for i in range(num_cells):
+            # Place road tiles for the width
+            for dy in range(-(road_width // 2), (road_width // 2) + 1):
+                y = road_y + dy * self.cell_size
+                if min_y <= y < max_y:
+                    road_pos = Vector2(road_x, y)
+                    self.entities["Road"].append(Road(road_pos, self.cell_size))
+            # Move right
+            road_x += self.cell_size
+            # Randomly move the road up or down (but keep it in allowed bounds)
+            if random.random() < 0.4:  # 40% chance to curve
+                direction = random.choice([-1, 0, 1])
+                new_road_y = road_y + direction * self.cell_size
+                if min_y <= new_road_y <= max_y:
+                    road_y = new_road_y
