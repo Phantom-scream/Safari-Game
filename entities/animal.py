@@ -24,6 +24,7 @@ class Animal(Entity, ABC):
         self.limit = 0 
         self.is_dead = False  # Attribute to track if the animal is dead
         self.thirst_level = 100  # New attribute: thirst level (max 100)
+        self.drinking_timer = None  # Timer to track drinking duration
 
         if type(self).__name__ not in Animal.species_list:
             Animal.species_list.append(type(self).__name__)
@@ -33,8 +34,8 @@ class Animal(Entity, ABC):
         return random.randint(1, cls.limit)
 
     def move(self):
-        if self.is_reproducing or self.is_dead:
-            return  # Stop moving if reproducing or dead
+        if self.is_reproducing or self.is_dead or self.drinking_timer is not None:
+            return  # Stop moving if reproducing, dead, or drinking water
 
         dx, dy = self.target.x - self.position.x, self.target.y - self.position.y
         distance = math.sqrt(dx**2 + dy**2)
@@ -64,12 +65,14 @@ class Animal(Entity, ABC):
 
         if self.known_water_sources:
             self.target = min(self.known_water_sources, key=lambda w: self.position.distanceTo(w))
+            print(f"{self.entityType} is heading to water at {self.target} due to thirst.")
 
     def drink_water(self):
-        """Increase thirst level when drinking water."""
+        """Start drinking water and reset thirst level."""
         self.thirst_level = 100  # Reset thirst level to maximum
+        self.drinking_timer = time.time()  # Start the drinking timer
+        print(f"{self.entityType} at {self.position} started drinking water.")
 
-        
     def update_thirst(self, deltaTime: float):
         """Decrease thirst level over time."""
         self.thirst_level -= deltaTime * 5  # Decrease thirst level (adjust rate as needed)
@@ -125,6 +128,14 @@ class Animal(Entity, ABC):
         if self.is_dead:
             return  # Dead animals do not update
 
+        # Handle drinking timer
+        if self.drinking_timer is not None:
+            if time.time() - self.drinking_timer >= 3:  # Stop drinking after 3 seconds
+                self.drinking_timer = None
+                print(f"{self.entityType} at {self.position} finished drinking water.")
+            else:
+                return  # Skip other updates while drinking
+
         # Update thirst level
         self.update_thirst(deltaTime)
 
@@ -132,10 +143,11 @@ class Animal(Entity, ABC):
         if self.thirst_level < 30:
             self.go_to_water()
 
-        # If near a water source, drink water
+        # If near a water source, start drinking water
         for water in world.entities['WaterBody']:
             if self.position.distanceTo(water.position) < self.size:
-                self.drink_water()
+                if self.drinking_timer is None:  # Start drinking only if not already drinking
+                    self.drink_water()
                 break
 
         if self.is_reproducing and time.time() - self.reproduction_timer > 4:
