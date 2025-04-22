@@ -58,6 +58,7 @@ class Renderer:
         self.renderUI(surface, gameState.uiManager)
 
     def renderEntities(self, surface, entities):
+        # 5. Ensure Road Rendering: Loop through all entity lists and render each entity
         for entity_list in entities.values():
             for entity in entity_list:
                 entity.render(surface, self.camera)
