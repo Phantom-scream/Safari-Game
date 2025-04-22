@@ -10,6 +10,11 @@ from gamelogic.economy import Economy
 from ui.renderer import Renderer
 from ui.main_screen import MainScreen
 from ui.minimap import Minimap
+from ui.ui_manager import Button
+from entities.plant import Plant 
+from entities.plant import Bush 
+from entities.plant import Tree 
+
 
 class Game:
     def __init__(self, width, height):
@@ -22,6 +27,38 @@ class Game:
         self.uiManager = UIManager()
         self.minimap = Minimap(WORLD_WIDTH, WORLD_HEIGHT, width, height)  # Add minimap
         self.running = True
+
+        self.world.generate_terrain()
+        self.world.generate_grassy_areas()
+        self.world.place_plants()
+
+        # --- Add Zoom Buttons ---
+        button_width = 40
+        button_height = 40
+        minimap_x, minimap_y = self.minimap.position
+        minimap_w, minimap_h = self.minimap.minimap_width, self.minimap.minimap_height
+        spacing = 10
+
+        zoom_in_button = Button(
+            "+",
+            (minimap_x, minimap_y + minimap_h + spacing),
+            (button_width, button_height),
+            self.zoom_in
+        )
+        zoom_out_button = Button(
+            "-",
+            (minimap_x + button_width + spacing, minimap_y + minimap_h + spacing),
+            (button_width, button_height),
+            self.zoom_out
+        )
+        self.uiManager.addComponent(zoom_in_button)
+        self.uiManager.addComponent(zoom_out_button)
+
+    def zoom_in(self):
+        self.renderer.camera.zoom_in()
+
+    def zoom_out(self):
+        self.renderer.camera.zoom_out()
 
     def update(self, deltaTime: float):
         """Update all objects (animals, etc.)"""
@@ -38,7 +75,7 @@ class Game:
         surface.fill((238, 214, 175))  # Desert background
         self.renderer.render(surface, self)
         self.uiManager.render(surface)
-        self.minimap.render(surface, self.renderer.camera, self.world.entities)  # Render minimap
+        self.minimap.render(surface, self.renderer.camera, self.world, self.world.entities)  # Render minimap
 
     def handleEvents(self):
         """Handle input events"""
@@ -52,7 +89,33 @@ class Game:
                 self.minimap.handle_click(pygame.mouse.get_pos(), self.renderer.camera)  # Handle minimap clicks
             if self.uiManager.handleEvent(event):
                 return
-            
+
+    def place_plants(self, num_bushes=40, num_trees=30, num_grass_areas=20):
+        placed_positions = set()
+        for PlantClass, count, allowed_cell in [
+            (Bush, num_bushes, "soil"),
+            (Tree, num_trees, "soil"),
+        ]:
+            for _ in range(count):
+                tries = 0
+                while tries < 1000:
+                    x = random.randint(0, self.grid_width - 1)
+                    y = random.randint(0, self.grid_height - 1)
+                    cell = self.terrain_grid[y][x]
+                    pos = Vector2(x * self.cell_size, y * self.cell_size)
+                    if (
+                        cell == allowed_cell
+                        and not self.is_on_road(pos)
+                        and not self.is_on_water_or_hill(pos)
+                        and not self.is_near_water(x, y, radius=2)
+                        and not self.is_near_road(x, y, radius=5)  # <-- Even further from roads!
+                        and (x, y) not in placed_positions
+                    ):
+                        plant = PlantClass(pos)
+                        self.entities[type(plant).__name__].append(plant)
+                        placed_positions.add((x, y))
+                        break
+                    tries += 1
 
 def show_rules(screen):
     """Display the rules screen."""

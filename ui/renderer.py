@@ -38,29 +38,78 @@ class Renderer:
                     
                     if color: # If a valid color was found for this terrain
                         # Calculate screen position based on camera (assuming camera.position is top-left)
-                        screen_x = world_x - camera.position.x
-                        screen_y = world_y - camera.position.y
+                        screen_x = (world_x - camera.position.x) * camera.zoom + camera.viewportWidth / 2
+                        screen_y = (world_y - camera.position.y) * camera.zoom + camera.viewportHeight / 2
                         
                         # Calculate clipped rectangle size for drawing
-                        rect_width = min(cell_size, world_width - world_x)
-                        rect_height = min(cell_size, world_height - world_y)
+                        rect_width = min(cell_size, world_width - world_x) * camera.zoom
+                        rect_height = min(cell_size, world_height - world_y) * camera.zoom
                         
                         # Only draw if the rectangle has positive dimensions
                         if rect_width > 0 and rect_height > 0:
                             # Check if the rectangle is visible on screen (optional optimization)
                             if (screen_x < camera.viewportWidth and screen_x + rect_width > 0 and
                                 screen_y < camera.viewportHeight and screen_y + rect_height > 0):
-                                rect = pygame.Rect(screen_x, screen_y, rect_width, rect_height)
+                                rect = pygame.Rect(
+                                    int(screen_x),
+                                    int(screen_y),
+                                    int(rect_width + 1),   # Overdraw width by 1 pixel
+                                    int(rect_height + 1)   # Overdraw height by 1 pixel
+                                )
                                 pygame.draw.rect(surface, color, rect)
                                 
+        for y in range(gameState.world.grid_height):
+            for x in range(gameState.world.grid_width):
+                cell = gameState.world.terrain_grid[y][x]
+                if cell == "grass":
+                    screen_pos = self.camera.worldToScreen(Vector2(x * gameState.world.cell_size, y * gameState.world.cell_size))
+                    pygame.draw.rect(
+                        surface,
+                        (144, 238, 144),  # Light green
+                        (screen_pos.x, screen_pos.y, gameState.world.cell_size, gameState.world.cell_size)
+                    )
+
         # Render entities and UI on top
         self.renderEntities(surface, gameState.world.entities)
         self.renderUI(surface, gameState.uiManager)
 
     def renderEntities(self, surface, entities):
-        for entity_list in entities.values():
+        # Draw roads first
+        for road in entities.get("Road", []):
+            road.render(surface, self.camera)
+        # Draw water bodies next
+        for water in entities.get("WaterBody", []):
+            water.render(surface, self.camera)
+        # Draw jeeps on top of the road and water
+        for jeep in entities.get("Jeep", []):
+            self.render_jeep(surface, jeep)
+        # Draw Bushes (as circles), Trees (as rectangles), GrassAreas (as ellipses)
+        for bush in entities.get("Bush", []):
+            screen_pos = self.camera.worldToScreen(bush.position)
+            size = bush.size * self.camera.zoom
+            pygame.draw.circle(surface, bush.color, (int(screen_pos.x + size/2), int(screen_pos.y + size/2)), int(size/2))
+        for tree in entities.get("Tree", []):
+            screen_pos = self.camera.worldToScreen(tree.position)
+            size = tree.size * self.camera.zoom
+            pygame.draw.rect(surface, tree.color, (screen_pos.x, screen_pos.y, size, size))
+        for grass in entities.get("GrassArea", []):
+            screen_pos = self.camera.worldToScreen(grass.position)
+            size = grass.size * self.camera.zoom
+            pygame.draw.ellipse(surface, grass.color, (screen_pos.x, screen_pos.y, size, size/2))
+        # Draw all other entities
+        for key, entity_list in entities.items():
+            if key in ("Road", "WaterBody", "Jeep", "Bush", "Tree", "GrassArea"):
+                continue
             for entity in entity_list:
                 entity.render(surface, self.camera)
+
+    def render_jeep(self, surface, jeep):
+        screen_pos = self.camera.worldToScreen(jeep.position)
+        jeep_color = jeep.color
+        pygame.draw.rect(surface, jeep_color, (screen_pos.x, screen_pos.y, jeep.size, jeep.size))
+        font = pygame.font.Font(None, 18)
+        text = font.render(str(len(jeep.passengers)), True, (255, 255, 255))
+        surface.blit(text, (screen_pos.x + 2, screen_pos.y + 2))
 
     def renderUI(self, surface, uiManager):
         uiManager.render(surface)

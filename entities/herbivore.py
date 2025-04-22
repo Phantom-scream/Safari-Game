@@ -8,13 +8,16 @@ class Herbivore(Animal):
 
     def render(self, surface: pygame.Surface, camera: 'Camera'):
         screenPos = camera.worldToScreen(self.position)
+        size = self.size * camera.zoom
         if hasattr(self, "sprite"):
-            surface.blit(self.sprite, (screenPos.x, screenPos.y))
+            # Scale the sprite to the current zoom
+            scaled_sprite = pygame.transform.scale(self.sprite, (int(size), int(size)))
+            surface.blit(scaled_sprite, (screenPos.x, screenPos.y))
         else:
-            pygame.draw.rect(surface, self.color, (screenPos.x, screenPos.y, self.size, self.size))
+            pygame.draw.rect(surface, self.color, (screenPos.x, screenPos.y, size, size))
 
 class Bison(Herbivore):
-    limit = 3
+    limit = 5
 
     def __init__(self, position: Vector2):
         super().__init__(position, 40, 1.5)
@@ -35,22 +38,22 @@ class Bison(Herbivore):
     
     def render(self, surface: pygame.Surface, camera: 'Camera'):
         screenPos = camera.worldToScreen(self.position)
+        size = self.size * camera.zoom
         if hasattr(self, "sprite"):
-            # Draw sprite at the position
-            surface.blit(self.sprite, (screenPos.x, screenPos.y))
+            scaled_sprite = pygame.transform.scale(self.sprite, (int(size), int(size)))
+            surface.blit(scaled_sprite, (screenPos.x, screenPos.y))
         else:
-            # Fallback to rectangle
-            pygame.draw.rect(surface, self.color, (screenPos.x, screenPos.y, self.size, self.size))
+            pygame.draw.rect(surface, self.color, (screenPos.x, screenPos.y, size, size))
 
 class Zebra(Herbivore):
-    limit = 2
+    limit = 5
 
     def __init__(self, position: Vector2):
         super().__init__(position, 20, 2.0)
         self.color = (255, 255, 255)
 
 class Antelope(Herbivore):
-    limit = 2
+    limit = 5
     
     def __init__(self, position: Vector2):
         super().__init__(position, 20, 2.5)
