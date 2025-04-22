@@ -20,7 +20,7 @@ class Bison(Herbivore):
     limit = 5
 
     def __init__(self, position: Vector2):
-        super().__init__(position, 40, 1.5)
+        super().__init__(position, 40, 100)  # <-- Set speed to 100
         self.color = (139, 69, 19)
         
         # Load image first
@@ -49,12 +49,12 @@ class Zebra(Herbivore):
     limit = 5
 
     def __init__(self, position: Vector2):
-        super().__init__(position, 20, 2.0)
+        super().__init__(position, 20, 110)  # <-- Set speed to 110
         self.color = (255, 255, 255)
 
 class Antelope(Herbivore):
     limit = 5
     
     def __init__(self, position: Vector2):
-        super().__init__(position, 20, 2.5)
+        super().__init__(position, 20, 120)  # <-- Set speed to 120
         self.color = (210, 180, 140)

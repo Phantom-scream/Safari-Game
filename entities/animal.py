@@ -11,6 +11,7 @@ class Animal(Entity, ABC):
     species_list = [] 
     current_species_index = 0 
     last_reproduction_times = {}
+    SLOW_FACTOR = 0.25  # Animals are 4x slower
 
     def __init__(self, position: Vector2, size: float, entityType: str, speed: float):
         super().__init__(position, size, entityType)
@@ -36,17 +37,14 @@ class Animal(Entity, ABC):
     def get_number(cls):
         return random.randint(1, cls.limit)
 
-    def move(self, deltaTime=None, world=None):
-        if self.is_reproducing or self.is_dead:
-            return
-
+    def move(self, deltaTime, world):
         dx, dy = self.target.x - self.position.x, self.target.y - self.position.y
         distance = math.sqrt(dx**2 + dy**2)
 
         if distance > 2:
             # Predict next position
-            step_x = self.position.x + (dx / distance) * self.speed
-            step_y = self.position.y + (dy / distance) * self.speed
+            step_x = self.position.x + (dx / distance) * self.speed * deltaTime
+            step_y = self.position.y + (dy / distance) * self.speed * deltaTime
 
             # --- Simple obstacle avoidance: check for collision with obstacles ---
             collision = False
@@ -73,89 +71,26 @@ class Animal(Entity, ABC):
             )
 
     def find_water(self, world):
-        if self.is_dead:
-            return  # Dead animals cannot find water
-
-        # --- Prune known water sources that no longer exist ---
-        current_water_positions = {water.position for water in world.entities['WaterBody']}
+        current_water_positions = {water.position for water in world.entities.get('WaterBody', [])}
         self.known_water_sources = [
             pos for pos in self.known_water_sources if pos in current_water_positions
         ]
-
-        for water in world.entities['WaterBody']:
-            distance = self.position.distanceTo(water.position)
-            if distance < self.vision_range and water.position not in self.known_water_sources:
+        for water in world.entities.get('WaterBody', []):
+            if self.position.distanceTo(water.position) < self.vision_range and water.position not in self.known_water_sources:
                 self.known_water_sources.append(water.position)
 
     def go_to_water(self):
-        if self.is_dead:
-            return  # Dead animals cannot move to water
-
         if self.known_water_sources:
-            self.target = min(self.known_water_sources, key=lambda w: self.position.distanceTo(w))
+            closest = min(self.known_water_sources, key=lambda pos: self.position.distanceTo(pos))
+            self.target = closest
 
-    def drink_water(self, water_position=None):
-        """Start drinking water and reset thirst level."""
+    def drink_water(self, water_position):
         if self.drinking_timer is None:
             self.drinking_timer = time.time()
-            if water_position is not None:
-                self.last_water_position = water_position  # Remember where we drank
-            print(f"{self.entityType} at {self.position} started drinking water.")
-
-    def update_thirst(self, deltaTime: float):
-        """Decrease thirst level over time."""
-        self.thirst_level -= deltaTime * 5  # Decrease thirst level (adjust rate as needed)
-        if self.thirst_level < 0:
-            self.thirst_level = 0  # Ensure thirst level does not go below 0
-
-    def reproduce(self, world):
-        if self.is_dead:  # Dead animals cannot reproduce
-            return
-
-        current_time = time.time()
-        species_name = type(self).__name__
-
-        # Initialize timer if not present
-        if species_name not in Animal.last_reproduction_times:
-            Animal.last_reproduction_times[species_name] = 0
-
-        # Enforce species-wide 8-second cooldown
-        if current_time - Animal.last_reproduction_times[species_name] < 8:
-            return
-
-        # Look for a partner nearby
-        nearby_animals = [
-            animal for animal in world.entities.get(species_name, [])
-            if animal != self and not animal.is_reproducing and not animal.is_dead and self.position.distanceTo(animal.position) < self.size * 2
-        ]
-
-        if nearby_animals:
-            partner = nearby_animals[0]
-            self.is_reproducing = True
-            partner.is_reproducing = True
-
-            # Update global species reproduction time
-            Animal.last_reproduction_times[species_name] = current_time
-
-            # Create baby in between
-            mid_x = (self.position.x + partner.position.x) / 2
-            mid_y = (self.position.y + partner.position.y) / 2
-            new_position = Vector2(
-                mid_x + random.uniform(-20, 20),
-                mid_y + random.uniform(-20, 20)
-            )
-            new_animal = type(self)(new_position)  # New animals are created without age
-            world.addEntity(new_animal)
-
-            print(f"{species_name} pair reproduced at {new_position}. Total {species_name}: {len(world.entities[species_name])}")
-
-    def mark_as_dead(self):
-        """Mark the animal as dead."""
-        self.is_dead = True
-        print(f"{self.entityType} at {self.position} died.")
-        self.is_dead = True
+            self.last_water_position = water_position
 
     def update(self, deltaTime: float, world: 'GameWorld'):
+        deltaTime *= self.SLOW_FACTOR  # Slow down all animal logic
             
         print(f"Updating {self.entityType} at {self.position}, thirst: {self.thirst_level}, dead: {self.is_dead}")
 
@@ -203,13 +138,8 @@ class Animal(Entity, ABC):
             return
 
         # Update thirst level
-        self.update_thirst(deltaTime)
-
-        # # --- Die if thirst reaches zero ---
-        # if self.thirst_level <= 0:
-        #     self.mark_as_dead()
-        #     print(f"{self.entityType} at {self.position} died of thirst.")
-        #     return
+        self.thirst_level -= 10 * deltaTime  # 10 units per second, adjust as needed
+        self.thirst_level = max(self.thirst_level, 0)
 
         # If thirst level is below 30, prioritize going to water
         if self.thirst_level < 30:
@@ -242,6 +172,53 @@ class Animal(Entity, ABC):
         self.move(deltaTime, world)
         self.find_water(world)
         self.reproduce(world)
+
+    def reproduce(self, world):
+        if self.is_dead:  # Dead animals cannot reproduce
+            return
+
+        current_time = time.time()
+        species_name = type(self).__name__
+
+        # Initialize timer if not present
+        if species_name not in Animal.last_reproduction_times:
+            Animal.last_reproduction_times[species_name] = 0
+
+        # Enforce species-wide 8-second cooldown
+        if current_time - Animal.last_reproduction_times[species_name] < 8:
+            return
+
+        # Look for a partner nearby
+        nearby_animals = [
+            animal for animal in world.entities.get(species_name, [])
+            if animal != self and not animal.is_reproducing and not animal.is_dead and self.position.distanceTo(animal.position) < self.size * 2
+        ]
+
+        if nearby_animals:
+            partner = nearby_animals[0]
+            self.is_reproducing = True
+            partner.is_reproducing = True
+
+            # Update global species reproduction time
+            Animal.last_reproduction_times[species_name] = current_time
+
+            # Create baby in between
+            mid_x = (self.position.x + partner.position.x) / 2
+            mid_y = (self.position.y + partner.position.y) / 2
+            new_position = Vector2(
+                mid_x + random.uniform(-20, 20),
+                mid_y + random.uniform(-20, 20)
+            )
+            new_animal = type(self)(new_position)  # New animals are created without age
+            world.addEntity(new_animal)
+
+            print(f"{species_name} pair reproduced at {new_position}. Total {species_name}: {len(world.entities[species_name])}")
+
+    def mark_as_dead(self):
+        """Mark the animal as dead."""
+        self.is_dead = True
+        print(f"{self.entityType} at {self.position} died.")
+        self.is_dead = True
 
     def render(self, surface: pygame.Surface, camera: 'Camera'):
         screenPos = camera.worldToScreen(self.position)
