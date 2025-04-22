@@ -254,10 +254,11 @@ class Poacher(Entity):
             return  # Don't render if not visible
             
         screenPos = camera.worldToScreen(self.position)
-        pygame.draw.circle(surface, self.color, (int(screenPos.x), int(screenPos.y)), int(self.size / 2))
+        radius = int(self.size / 2 * camera.zoom)
+        pygame.draw.circle(surface, self.color, (int(screenPos.x), int(screenPos.y)), radius)
         
         # Draw captured animal if exists
         if self.has_captured_animal:
             pygame.draw.circle(surface, self.has_captured_animal.color, 
                              (int(screenPos.x), int(screenPos.y)), 
-                             int(self.size / 4))
+                             int(self.size / 4 * camera.zoom))
