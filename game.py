@@ -14,10 +14,15 @@ from ui.ui_manager import Button
 from entities.plant import Plant 
 from entities.plant import Bush 
 from entities.plant import Tree 
+from entities.animal import Animal
 
 
 class Game:
     def __init__(self, width, height):
+        Animal.species_list = []
+        Animal.last_reproduction_times = {}
+        Animal.current_species_index = 0
+        Animal.reproduction_lock = None
         self.width = width
         self.height = height
         self.timeManager = TimeManager()

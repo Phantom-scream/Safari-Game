@@ -46,6 +46,8 @@ class Jeep(Entity):
                 elif self.state == "to_entrance" and self.current_index == 0:
                     self.state = "to_exit"
                     self.passengers = [Tourist(f"Tourist {i+1}") for i in range(4)]
+                    self.animals_seen.clear()         # <-- Add this line
+                    self.total_animals_seen = 0      
             else:
                 self.position.x += direction.x * move_dist
                 self.position.y += direction.y * move_dist
@@ -62,8 +64,8 @@ class Jeep(Entity):
                     self.animals_seen.add(animal_type)
                     self.total_animals_seen += 1
 
-        # At the end of the road:
-        if self.position == world.road_exit:
+        # At the end of the road, only if there are passengers
+        if world.road_exit and self.position.distanceTo(world.road_exit) < 5 and self.has_passengers():
             base_revenue = 100
             diversity_bonus = 20 * len(self.animals_seen)
             animal_bonus = 5 * self.total_animals_seen

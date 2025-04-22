@@ -110,11 +110,11 @@ class GameWorld:
         for entity_list in self.entities.values():
             for entity in entity_list:
                 entity.update(deltaTime, self)
-        for jeep in self.entities.get("Jeep", []):
-            # Check if jeep has reached the end of the road
-            if hasattr(self, "road_exit") and jeep.position == self.road_exit:
-                if self.economy:
-                    self.economy.add_money(100)  # Add money when jeep completes tour
+        # for jeep in self.entities.get("Jeep", []):
+        #     # Check if jeep has reached the end of the road
+        #     if hasattr(self, "road_exit") and jeep.position == self.road_exit:
+        #         if self.economy:
+        #             self.economy.add_money(100)  # Add money when jeep completes tour
 
     def add_road(self):
         """Generate a single wide road from left to right, only in the central 50% of the map height."""
