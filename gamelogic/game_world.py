@@ -13,6 +13,7 @@ from gamelogic.settings import NUM_ANIMALS, NUM_WATER_SOURCES, NUM_PLANTS, NUM_P
 from ui.vector2 import Vector2
 import random
 from entities.road import Road  # 1. Import the Road class
+from entities.jeep import Jeep  # Add this import
 
 class GameWorld:
     def __init__(self, width, height, cell_size=20):
@@ -35,6 +36,7 @@ class GameWorld:
             'Plant': [Plant(Vector2(random.randint(0, width), random.randint(0, height)), 15, 100) for _ in range(NUM_PLANTS)],
             'Poacher' : [Poacher(Vector2(random.randint(0, width), random.randint(0, height)), 20, 2.5) for _ in range(NUM_POACHERS)],
             "Road": [],
+            "Jeep": [],  # Add Jeep list to entities
         }
         self.add_road()  # Call after initializing entities
         self.generate_terrain()  # Move terrain generation after road creation
@@ -46,6 +48,19 @@ class GameWorld:
                 if not self.is_on_road(pos):
                     self.entities['WaterBody'].append(WaterBody(pos, 20))
                     break
+
+        # Find the road path from left to right (sorted by x)
+        road_path = sorted(self.entities["Road"], key=lambda r: r.position.x)
+        road_positions = [r.position for r in road_path]
+
+        # 4. Define entrance and exit for the road
+        self.road_entrance = road_positions[0] if road_positions else None
+        self.road_exit = road_positions[-1] if road_positions else None
+
+        # Create a Jeep at the entrance (leftmost road tile) with 4 tourists
+        if road_positions:
+            jeep = Jeep(self.road_entrance, road_positions)
+            self.entities["Jeep"].append(jeep)
 
     def is_on_road(self, position: Vector2) -> bool:
         # Check if the position is close to any road tile

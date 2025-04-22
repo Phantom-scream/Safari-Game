@@ -58,18 +58,29 @@ class Renderer:
         self.renderUI(surface, gameState.uiManager)
 
     def renderEntities(self, surface, entities):
-        # 1. Draw roads first
+        # Draw roads first
         for road in entities.get("Road", []):
             road.render(surface, self.camera)
-        # 2. Draw water bodies next (so they cover the road)
+        # Draw water bodies next
         for water in entities.get("WaterBody", []):
             water.render(surface, self.camera)
-        # 3. Draw all other entities on top
+        # Draw jeeps on top of the road and water
+        for jeep in entities.get("Jeep", []):
+            self.render_jeep(surface, jeep)
+        # Draw all other entities
         for key, entity_list in entities.items():
-            if key in ("Road", "WaterBody"):
+            if key in ("Road", "WaterBody", "Jeep"):
                 continue
             for entity in entity_list:
                 entity.render(surface, self.camera)
+
+    def render_jeep(self, surface, jeep):
+        screen_pos = self.camera.worldToScreen(jeep.position)
+        jeep_color = jeep.color
+        pygame.draw.rect(surface, jeep_color, (screen_pos.x, screen_pos.y, jeep.size, jeep.size))
+        font = pygame.font.Font(None, 18)
+        text = font.render(str(len(jeep.passengers)), True, (255, 255, 255))
+        surface.blit(text, (screen_pos.x + 2, screen_pos.y + 2))
 
     def renderUI(self, surface, uiManager):
         uiManager.render(surface)
