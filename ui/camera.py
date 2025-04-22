@@ -51,3 +51,10 @@ class Camera:
         if keys[pygame.K_DOWN]:
             self.position.y = min(max_y, self.position.y + moveSpeed)
 
+
+    def zoom_in(self, factor=1.1):
+        self.zoom = min(self.zoom * factor, 4.0)  # Max zoom in
+
+    def zoom_out(self, factor=1.1):
+        self.zoom = max(self.zoom / factor, 0.25)  # Max zoom out
+

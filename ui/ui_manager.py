@@ -86,6 +86,8 @@ class UIManager:
             self.activeMenu.handleEvent(event)
             return True
         self.menuButton.handleEvent(event)
+        for component in self.components:  # <-- Add this line and the loop below
+            component.handleEvent(event)
         return False
 
     def render(self, surface):
