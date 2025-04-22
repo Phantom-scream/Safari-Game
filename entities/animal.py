@@ -25,6 +25,9 @@ class Animal(Entity, ABC):
         self.is_dead = False  # Attribute to track if the animal is dead
         self.thirst_level = 100  # New attribute: thirst level (max 100)
         self.drinking_timer = None  # Timer to track drinking duration
+        self.last_drink_time = 0
+        self.drink_cooldown = 2.0  # seconds to wait before drinking again
+        self.last_water_position = None  # Add this line
 
         if type(self).__name__ not in Animal.species_list:
             Animal.species_list.append(type(self).__name__)
@@ -33,26 +36,51 @@ class Animal(Entity, ABC):
     def get_number(cls):
         return random.randint(1, cls.limit)
 
-    def move(self):
+    def move(self, deltaTime=None, world=None):
         if self.is_reproducing or self.is_dead:
-            return  # Stop moving if reproducing, dead, or drinking water
+            return
 
         dx, dy = self.target.x - self.position.x, self.target.y - self.position.y
         distance = math.sqrt(dx**2 + dy**2)
 
         if distance > 2:
-            self.position.x += (dx / distance) * self.speed
-            self.position.y += (dy / distance) * self.speed
+            # Predict next position
+            step_x = self.position.x + (dx / distance) * self.speed
+            step_y = self.position.y + (dy / distance) * self.speed
+
+            # --- Simple obstacle avoidance: check for collision with obstacles ---
+            collision = False
+            # Example: avoid water and hills (customize as needed)
+            for obstacle in world.entities.get('WaterBody', []):
+                if Vector2(step_x, step_y).distanceTo(obstacle.position) < obstacle.size:
+                    collision = True
+                    break
+            # You can add more checks for hills, rocks, or other animals here
+
+            if collision:
+                # Steer: pick a new random nearby target to avoid obstacle
+                self.target = Vector2(
+                    self.position.x + random.uniform(-100, 100),
+                    self.position.y + random.uniform(-100, 100)
+                )
+            else:
+                self.position.x = step_x
+                self.position.y = step_y
         else:
-            # Update target to cover the entire map dimensions
             self.target = Vector2(
-                random.uniform(0, 1600),  # WORLD_WIDTH from settings
-                random.uniform(0, 1200)  # WORLD_HEIGHT from settings
+                random.uniform(0, 1600),
+                random.uniform(0, 1200)
             )
 
     def find_water(self, world):
         if self.is_dead:
             return  # Dead animals cannot find water
+
+        # --- Prune known water sources that no longer exist ---
+        current_water_positions = {water.position for water in world.entities['WaterBody']}
+        self.known_water_sources = [
+            pos for pos in self.known_water_sources if pos in current_water_positions
+        ]
 
         for water in world.entities['WaterBody']:
             distance = self.position.distanceTo(water.position)
@@ -66,12 +94,13 @@ class Animal(Entity, ABC):
         if self.known_water_sources:
             self.target = min(self.known_water_sources, key=lambda w: self.position.distanceTo(w))
 
-    def drink_water(self):
+    def drink_water(self, water_position=None):
         """Start drinking water and reset thirst level."""
-        if self.drinking_timer is None:  # Start drinking only if not already drinking
-            self.drinking_timer = time.time()  # Start the drinking timer
+        if self.drinking_timer is None:
+            self.drinking_timer = time.time()
+            if water_position is not None:
+                self.last_water_position = water_position  # Remember where we drank
             print(f"{self.entityType} at {self.position} started drinking water.")
-
 
     def update_thirst(self, deltaTime: float):
         """Decrease thirst level over time."""
@@ -123,44 +152,94 @@ class Animal(Entity, ABC):
     def mark_as_dead(self):
         """Mark the animal as dead."""
         self.is_dead = True
+        print(f"{self.entityType} at {self.position} died.")
+        self.is_dead = True
 
     def update(self, deltaTime: float, world: 'GameWorld'):
+            
+        print(f"Updating {self.entityType} at {self.position}, thirst: {self.thirst_level}, dead: {self.is_dead}")
+
         if self.is_dead:
             return  # Dead animals do not update
 
         # Handle drinking timer
         if self.drinking_timer is not None:
-            if time.time() - self.drinking_timer >= 3:  # Stop drinking after 3 seconds
+            if time.time() - self.drinking_timer >= 1:  # <-- Drink for only 1 second
+                self.thirst_level = 100
                 self.drinking_timer = None
-                self.thirst_level = 100  # Reset thirst level to maximum
-
-                self.target = Vector2(
-                    random.uniform(0, 1600),
-                    random.uniform(0, 1200)
-                )
-
+                self.last_drink_time = time.time()
+                # Set a new target AWAY from water
+                if self.last_water_position:
+                    dx = self.position.x - self.last_water_position.x
+                    dy = self.position.y - self.last_water_position.y
+                    length = math.sqrt(dx**2 + dy**2) or 1
+                    # Move 100 units away in the opposite direction
+                    self.target = Vector2(
+                        self.position.x + (dx / length) * 100,
+                        self.position.y + (dy / length) * 100
+                    )
+                else:
+                    # fallback: random direction
+                    self.target = Vector2(
+                        self.position.x + random.randint(-100, 100),
+                        self.position.y + random.randint(-100, 100)
+                    )
                 print(f"{self.entityType} at {self.position} finished drinking water and resumed moving.")
-                # Continue with the update below after drinking
             else:
-                return  # Skip rest of update while still drinking  
+                return
+
+        # After drinking logic, before allowing to drink again:
+        if time.time() - self.last_drink_time < self.drink_cooldown or (
+            self.last_water_position and self.position.distanceTo(self.last_water_position) < self.size * 2
+        ):
+            # Skip drinking logic, allow movement away
+            self.move(deltaTime, world)
+            return
+
+        # Prevent immediate re-drinking after cooldown
+        if time.time() - self.last_drink_time < self.drink_cooldown:
+            # Skip drinking logic, allow movement away
+            self.move(deltaTime, world)
+            return
 
         # Update thirst level
         self.update_thirst(deltaTime)
 
+        # # --- Die if thirst reaches zero ---
+        # if self.thirst_level <= 0:
+        #     self.mark_as_dead()
+        #     print(f"{self.entityType} at {self.position} died of thirst.")
+        #     return
+
         # If thirst level is below 30, prioritize going to water
         if self.thirst_level < 30:
+            self.find_water(world)      # <--- Ensure this is called every time when thirsty
             self.go_to_water()
 
         # If near a water source, start drinking water
         for water in world.entities['WaterBody']:
             if self.position.distanceTo(water.position) < self.size:
-                self.drink_water()
+                # --- Repulsion: Check if another animal is already drinking here ---
+                crowded = False
+                for other in world.entities.get(type(self).__name__, []):
+                    if other is not self and other.drinking_timer is not None:
+                        if other.position.distanceTo(water.position) < self.size:
+                            crowded = True
+                            break
+                if not crowded:
+                    self.drink_water(water.position)  # Pass water position here
+                else:
+                    # Move away a bit to avoid crowding
+                    self.target = Vector2(
+                        self.position.x + random.uniform(-50, 50),
+                        self.position.y + random.uniform(-50, 50)
+                    )
                 break
 
         if self.is_reproducing and time.time() - self.reproduction_timer > 4:
             self.is_reproducing = False
 
-        self.move()
+        self.move(deltaTime, world)
         self.find_water(world)
         self.reproduce(world)
 
