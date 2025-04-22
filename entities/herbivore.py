@@ -14,7 +14,7 @@ class Herbivore(Animal):
             pygame.draw.rect(surface, self.color, (screenPos.x, screenPos.y, self.size, self.size))
 
 class Bison(Herbivore):
-    limit = 3
+    limit = 5
 
     def __init__(self, position: Vector2):
         super().__init__(position, 40, 1.5)
@@ -43,14 +43,14 @@ class Bison(Herbivore):
             pygame.draw.rect(surface, self.color, (screenPos.x, screenPos.y, self.size, self.size))
 
 class Zebra(Herbivore):
-    limit = 2
+    limit = 5
 
     def __init__(self, position: Vector2):
         super().__init__(position, 20, 2.0)
         self.color = (255, 255, 255)
 
 class Antelope(Herbivore):
-    limit = 2
+    limit = 5
     
     def __init__(self, position: Vector2):
         super().__init__(position, 20, 2.5)

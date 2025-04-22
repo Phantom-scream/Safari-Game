@@ -23,6 +23,7 @@ class Animal(Entity, ABC):
         self.is_reproducing = False 
         self.limit = 0 
         self.is_dead = False  # Attribute to track if the animal is dead
+        self.thirst_level = 100  # New attribute: thirst level (max 100)
 
         if type(self).__name__ not in Animal.species_list:
             Animal.species_list.append(type(self).__name__)
@@ -64,6 +65,17 @@ class Animal(Entity, ABC):
         if self.known_water_sources:
             self.target = min(self.known_water_sources, key=lambda w: self.position.distanceTo(w))
 
+    def drink_water(self):
+        """Increase thirst level when drinking water."""
+        self.thirst_level = 100  # Reset thirst level to maximum
+
+        
+    def update_thirst(self, deltaTime: float):
+        """Decrease thirst level over time."""
+        self.thirst_level -= deltaTime * 5  # Decrease thirst level (adjust rate as needed)
+        if self.thirst_level < 0:
+            self.thirst_level = 0  # Ensure thirst level does not go below 0
+
     def reproduce(self, world):
         if self.is_dead:  # Dead animals cannot reproduce
             return
@@ -75,8 +87,8 @@ class Animal(Entity, ABC):
         if species_name not in Animal.last_reproduction_times:
             Animal.last_reproduction_times[species_name] = 0
 
-        # Enforce species-wide 15-second cooldown
-        if current_time - Animal.last_reproduction_times[species_name] < 15:
+        # Enforce species-wide 8-second cooldown
+        if current_time - Animal.last_reproduction_times[species_name] < 8:
             return
 
         # Look for a partner nearby
@@ -112,6 +124,19 @@ class Animal(Entity, ABC):
     def update(self, deltaTime: float, world: 'GameWorld'):
         if self.is_dead:
             return  # Dead animals do not update
+
+        # Update thirst level
+        self.update_thirst(deltaTime)
+
+        # If thirst level is below 30, prioritize going to water
+        if self.thirst_level < 30:
+            self.go_to_water()
+
+        # If near a water source, drink water
+        for water in world.entities['WaterBody']:
+            if self.position.distanceTo(water.position) < self.size:
+                self.drink_water()
+                break
 
         if self.is_reproducing and time.time() - self.reproduction_timer > 4:
             self.is_reproducing = False
