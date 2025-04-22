@@ -109,27 +109,21 @@ class GameWorld:
                 entity.update(deltaTime, self)
 
     def add_road(self):
-        """Generate a natural-looking road from left to right, only in the central 50% of the map height."""
-        road_width = 3  # Number of cells wide
+        """Generate a single wide road from left to right, only in the central 50% of the map height."""
+        road_width = self.cell_size * 5  # Make the road 5 times wider than before
         road_x = 0
-        # Restrict vertical range to 0.25 - 0.75 of the map height
         min_y = int(self.height * 0.25)
         max_y = int(self.height * 0.75)
-        road_y = (min_y + max_y) // 2  # Start in the middle of allowed range
+        road_y = (min_y + max_y) // 2
         num_cells = self.width // self.cell_size
 
         for i in range(num_cells):
-            # Place road tiles for the width
-            for dy in range(-(road_width // 2), (road_width // 2) + 1):
-                y = road_y + dy * self.cell_size
-                if min_y <= y < max_y:
-                    road_pos = Vector2(road_x, y)
-                    self.entities["Road"].append(Road(road_pos, self.cell_size))
-            # Move right
+            # Place one wide road object per column
+            road_pos = Vector2(road_x, road_y - road_width // 2)
+            self.entities["Road"].append(Road(road_pos, road_width))
             road_x += self.cell_size
-            # Randomly move the road up or down (but keep it in allowed bounds)
-            if random.random() < 0.4:  # 40% chance to curve
+            if random.random() < 0.4:
                 direction = random.choice([-1, 0, 1])
                 new_road_y = road_y + direction * self.cell_size
-                if min_y <= new_road_y <= max_y:
+                if min_y + road_width // 2 <= new_road_y <= max_y - road_width // 2:
                     road_y = new_road_y

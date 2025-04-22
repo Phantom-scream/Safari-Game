@@ -3,38 +3,50 @@ from entities.tourist import Tourist
 
 class Jeep:
     def __init__(self, position: Vector2, road_path: list):
-        self.position = position
-        self.road_path = road_path  # List of Vector2 positions along the road
+        self.road_path = road_path
         self.passengers = [Tourist(f"Tourist {i+1}") for i in range(4)]
-        self.state = "to_exit"  # or "to_entrance"
-        self.current_index = 0  # Index in the road_path
-        self.color = (60, 60, 200)  # Add this line for minimap and rendering
-        self.size = 28  # Make the jeep bigger (was 18)
-        self.move_timer = 0.0  # Timer for movement
-        self.move_interval = 0.25  # Move every 0.25 seconds (slower)
+        self.state = "to_exit"
+        self.current_index = 0
+        self.color = (60, 60, 200)
+        self.size = 40  # Back to original size
+        self.speed = 120
+        self.position = Vector2(position.x + 0.5 * (road_path[0].size if hasattr(road_path[0], 'size') else 40), 
+                                position.y + 0.5 * (road_path[0].size if hasattr(road_path[0], 'size') else 40))
 
-    def move(self):
+    def move(self, deltaTime):
+        # Move from center of one road cell to center of next
         if self.state == "to_exit":
-            if self.current_index < len(self.road_path) - 1:
-                self.current_index += 1
-                self.position = self.road_path[self.current_index]
+            target_index = min(self.current_index + 1, len(self.road_path) - 1)
+        else:
+            target_index = max(self.current_index - 1, 0)
+
+        # Center of the target road cell
+        target_pos = Vector2(
+            self.road_path[target_index].x + 0.5 * (self.road_path[target_index].size if hasattr(self.road_path[target_index], 'size') else 40),
+            self.road_path[target_index].y + 0.5 * (self.road_path[target_index].size if hasattr(self.road_path[target_index], 'size') else 40)
+        )
+        direction = Vector2(target_pos.x - self.position.x, target_pos.y - self.position.y)
+        distance = (direction.x ** 2 + direction.y ** 2) ** 0.5
+
+        if distance > 0:
+            direction.x /= distance
+            direction.y /= distance
+            move_dist = self.speed * deltaTime
+            if move_dist >= distance:
+                self.position = Vector2(target_pos.x, target_pos.y)
+                self.current_index = target_index
+                if self.state == "to_exit" and self.current_index == len(self.road_path) - 1:
+                    self.state = "to_entrance"
+                    self.passengers = []
+                elif self.state == "to_entrance" and self.current_index == 0:
+                    self.state = "to_exit"
+                    self.passengers = [Tourist(f"Tourist {i+1}") for i in range(4)]
             else:
-                self.state = "to_entrance"
-                self.passengers = []  # Tourists leave at exit
-        elif self.state == "to_entrance":
-            if self.current_index > 0:
-                self.current_index -= 1
-                self.position = self.road_path[self.current_index]
-            else:
-                self.state = "to_exit"
-                self.passengers = [Tourist(f"Tourist {i+1}") for i in range(4)]
+                self.position.x += direction.x * move_dist
+                self.position.y += direction.y * move_dist
 
     def has_passengers(self):
         return len(self.passengers) > 0
 
     def update(self, deltaTime, world):
-        # Move the jeep at a slower rate using a timer
-        self.move_timer += deltaTime
-        if self.move_timer >= self.move_interval:
-            self.move()
-            self.move_timer = 0.0
+        self.move(deltaTime)
