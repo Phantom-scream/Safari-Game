@@ -1,0 +1,9 @@
+image: python:3.11
+
+before_script:
+  - python --version
+
+run_game:
+  script:
+    - echo "Running your Python game!"
+    - python game.py
