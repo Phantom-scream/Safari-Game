@@ -163,23 +163,39 @@ class GameWorld:
                         break
                     tries += 1
 
-    def generate_grassy_areas(self, num_patches=8, min_size=4, max_size=10):
+    def generate_grassy_areas(self, num_patches=8, min_size=10, max_size=30):
         for _ in range(num_patches):
-            patch_w = random.randint(min_size, max_size)
-            patch_h = random.randint(min_size, max_size)
-            x0 = random.randint(0, self.grid_width - patch_w - 1)
-            y0 = random.randint(0, self.grid_height - patch_h - 1)
-            for dx in range(patch_w):
-                for dy in range(patch_h):
-                    x = x0 + dx
-                    y = y0 + dy
-                    # Only overwrite soil, not water/hill/road, and avoid roads nearby
-                    if (
-                        self.terrain_grid[y][x] == "soil"
-                        and not self.is_on_road(Vector2(x * self.cell_size, y * self.cell_size))
-                        and not self.is_near_road(x, y, radius=2)  # <-- Avoid near roads
-                    ):
-                        self.terrain_grid[y][x] = "grass"
+            patch_size = random.randint(min_size, max_size)
+            # Start at a random soil cell not near a road
+            tries = 0
+            while tries < 100:
+                x = random.randint(0, self.grid_width - 1)
+                y = random.randint(0, self.grid_height - 1)
+                if (
+                    self.terrain_grid[y][x] == "soil"
+                    and not self.is_on_road(Vector2(x * self.cell_size, y * self.cell_size))
+                    and not self.is_near_road(x, y, radius=2)
+                ):
+                    break
+                tries += 1
+            else:
+                continue  # Couldn't find a good start, skip this patch
+
+            cells = set()
+            cells.add((x, y))
+            self.terrain_grid[y][x] = "grass"
+            for _ in range(patch_size):
+                cx, cy = random.choice(list(cells))
+                # Randomly move in one direction
+                nx = min(max(cx + random.choice([-1, 0, 1]), 0), self.grid_width - 1)
+                ny = min(max(cy + random.choice([-1, 0, 1]), 0), self.grid_height - 1)
+                if (
+                    self.terrain_grid[ny][nx] == "soil"
+                    and not self.is_on_road(Vector2(nx * self.cell_size, ny * self.cell_size))
+                    and not self.is_near_road(nx, ny, radius=2)
+                ):
+                    self.terrain_grid[ny][nx] = "grass"
+                    cells.add((nx, ny))
 
     # Add this to your GameWorld class
     def is_near_road(self, x, y, radius=2):
