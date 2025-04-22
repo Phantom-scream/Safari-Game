@@ -95,7 +95,6 @@ class Game:
         for PlantClass, count, allowed_cell in [
             (Bush, num_bushes, "soil"),
             (Tree, num_trees, "soil"),
-            # (GrassArea, num_grass_areas, "grass")  # <-- Remove or comment this out
         ]:
             for _ in range(count):
                 tries = 0
@@ -108,7 +107,8 @@ class Game:
                         cell == allowed_cell
                         and not self.is_on_road(pos)
                         and not self.is_on_water_or_hill(pos)
-                        and not self.is_near_water(x, y, radius=2)  # <-- Add this line
+                        and not self.is_near_water(x, y, radius=2)
+                        and not self.is_near_road(x, y, radius=5)  # <-- Even further from roads!
                         and (x, y) not in placed_positions
                     ):
                         plant = PlantClass(pos)
