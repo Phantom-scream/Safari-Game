@@ -6,6 +6,7 @@ import pygame
 class Jeep(Entity):
     def __init__(self, position, road_path):
         super().__init__(position, 20, "Jeep")
+        self.just_arrived_at_exit = False
         self.road_path = road_path
         self.animals_seen = set()
         self.total_animals_seen = 0
@@ -41,8 +42,9 @@ class Jeep(Entity):
                 self.position = Vector2(target_pos.x, target_pos.y)
                 self.current_index = target_index
                 if self.state == "to_exit" and self.current_index == len(self.road_path) - 1:
+                    self.just_arrived_at_exit = True
                     self.state = "to_entrance"
-                    self.passengers = []
+                    
                 elif self.state == "to_entrance" and self.current_index == 0:
                     self.state = "to_exit"
                     self.passengers = [Tourist(f"Tourist {i+1}") for i in range(4)]
@@ -65,7 +67,7 @@ class Jeep(Entity):
                     self.total_animals_seen += 1
 
         # At the end of the road, only if there are passengers
-        if world.road_exit and self.position.distanceTo(world.road_exit) < 5 and self.has_passengers():
+        if self.just_arrived_at_exit and self.has_passengers():
             base_revenue = 100
             diversity_bonus = 20 * len(self.animals_seen)
             animal_bonus = 5 * self.total_animals_seen
@@ -74,7 +76,9 @@ class Jeep(Entity):
             # Reset for next tour
             self.animals_seen.clear()
             self.total_animals_seen = 0
-
+            self.passengers = []  # Now clear passengers
+            self.just_arrived_at_exit = False
+            
     def render(self, surface: pygame.Surface, camera: 'Camera'):
         screen_pos = camera.worldToScreen(self.position)
         size = self.size * camera.zoom
