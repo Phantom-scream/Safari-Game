@@ -1,5 +1,6 @@
 from ui.vector2 import Vector2
 from entities.tourist import Tourist
+import pygame
 
 class Jeep:
     def __init__(self, position: Vector2, road_path: list):
@@ -50,3 +51,9 @@ class Jeep:
 
     def update(self, deltaTime, world):
         self.move(deltaTime)
+
+    def render(self, surface: pygame.Surface, camera: 'Camera'):
+        screen_pos = camera.worldToScreen(self.position)
+        size = self.size * camera.zoom
+        pygame.draw.rect(surface, self.color, (screen_pos.x, screen_pos.y, size, size))
+        

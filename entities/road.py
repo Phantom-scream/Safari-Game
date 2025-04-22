@@ -18,13 +18,14 @@ class Road(Entity):
         pass
 
     def render(self, surface: pygame.Surface, camera: 'Camera'):
-        """Draws the road cell relative to the camera."""
-        # Convert world position to screen position using the camera
-        # Note: worldToScreen might return the top-left corner for drawing
         screen_pos = camera.worldToScreen(self.position)
-
-        # Create a rectangle at the calculated screen position with the entity's size
-        road_rect = pygame.Rect(screen_pos.x, screen_pos.y, self.size, self.size)
-
-        # Draw the rectangle on the provided surface with the road's color
+        # Scale the road size with camera zoom
+        road_width = self.size * camera.zoom
+        road_height = self.size * camera.zoom
+        road_rect = pygame.Rect(
+            int(screen_pos.x),
+            int(screen_pos.y),
+            int(road_width + 1),
+            int(road_height + 1)
+        )
         pygame.draw.rect(surface, self.color, road_rect)

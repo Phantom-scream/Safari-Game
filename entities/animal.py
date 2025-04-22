@@ -147,4 +147,5 @@ class Animal(Entity, ABC):
 
     def render(self, surface: pygame.Surface, camera: 'Camera'):
         screenPos = camera.worldToScreen(self.position)
-        pygame.draw.rect(surface, self.color, (screenPos.x, screenPos.y, self.size, self.size))
+        size = self.size * camera.zoom  # Scale size by zoom
+        pygame.draw.rect(surface, self.color, (screenPos.x, screenPos.y, size, size))
