@@ -1,15 +1,15 @@
 image: python:3.11
- 
+
 before_script:
   - python --version
   - pip install --upgrade pip
   - pip install pygame
   # If you have a requirements.txt, use:
   # - pip install -r requirements.txt
- 
+
 stages:
   - test
- 
+
 run_game:
   stage: test
   script:
