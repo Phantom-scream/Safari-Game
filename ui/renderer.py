@@ -58,8 +58,16 @@ class Renderer:
         self.renderUI(surface, gameState.uiManager)
 
     def renderEntities(self, surface, entities):
-        # 5. Ensure Road Rendering: Loop through all entity lists and render each entity
-        for entity_list in entities.values():
+        # 1. Draw roads first
+        for road in entities.get("Road", []):
+            road.render(surface, self.camera)
+        # 2. Draw water bodies next (so they cover the road)
+        for water in entities.get("WaterBody", []):
+            water.render(surface, self.camera)
+        # 3. Draw all other entities on top
+        for key, entity_list in entities.items():
+            if key in ("Road", "WaterBody"):
+                continue
             for entity in entity_list:
                 entity.render(surface, self.camera)
 
