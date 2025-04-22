@@ -21,8 +21,8 @@ class Game:
         self.width = width
         self.height = height
         self.timeManager = TimeManager()
-        self.world = GameWorld(WORLD_WIDTH, WORLD_HEIGHT)
-        self.economy = Economy()
+        self.economy = Economy()  # Starts with 1000 by default
+        self.world = GameWorld(WORLD_WIDTH, WORLD_HEIGHT, self.economy)
         self.renderer = Renderer(WORLD_WIDTH, WORLD_HEIGHT, width, height)
         self.uiManager = UIManager()
         self.minimap = Minimap(WORLD_WIDTH, WORLD_HEIGHT, width, height)  # Add minimap
@@ -67,7 +67,7 @@ class Game:
             deltaTime = self.timeManager.get_delta_time()
 
             self.world.update(deltaTime)
-            self.economy.update(deltaTime)
+            # self.economy.update(deltaTime)  # <-- Remove or comment out this line
             self.renderer.handleInput(deltaTime)
 
     def render(self, surface):
@@ -76,6 +76,28 @@ class Game:
         self.renderer.render(surface, self)
         self.uiManager.render(surface)
         self.minimap.render(surface, self.renderer.camera, self.world, self.world.entities)  # Render minimap
+
+        # --- Stylish money bar (top-right corner) ---
+        bar_width, bar_height = 220, 50
+        padding = 20
+        x = (self.width - bar_width) // 2  # Center horizontally
+        y = padding
+
+        # Draw rounded rectangle background
+        pygame.draw.rect(surface, (255, 255, 255), (x, y, bar_width, bar_height), border_radius=18)
+        pygame.draw.rect(surface, (218, 165, 32), (x, y, bar_width, bar_height), 3, border_radius=18)  # Gold border
+
+        # Draw coin icon (simple yellow circle)
+        coin_radius = 16
+        coin_x = x + 20
+        coin_y = y + bar_height // 2
+        pygame.draw.circle(surface, (255, 215, 0), (coin_x, coin_y), coin_radius)
+        pygame.draw.circle(surface, (218, 165, 32), (coin_x, coin_y), coin_radius, 3)
+
+        # Draw money text
+        font = pygame.font.Font(None, 36)
+        money_text = font.render(f"${self.economy.money}", True, (0, 0, 0))
+        surface.blit(money_text, (coin_x + coin_radius + 15, y + bar_height // 2 - money_text.get_height() // 2))
 
     def handleEvents(self):
         """Handle input events"""

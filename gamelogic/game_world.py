@@ -17,13 +17,12 @@ from entities.jeep import Jeep  # Add this import
 from entities.plant import Bush, Tree
 
 class GameWorld:
-    def __init__(self, width, height, cell_size=20):
+    def __init__(self, width, height, economy=None):
         self.width = width
         self.height = height
-        self.cell_size = cell_size
-        # Add +1 to make sure we cover the entire world and have an extra cell at edges
-        self.grid_width = math.ceil(width / cell_size) + 2
-        self.grid_height = math.ceil(height / cell_size) + 2
+        self.cell_size = 20  # Define cell_size here, not in settings.py
+        self.grid_width = math.ceil(width / self.cell_size) + 2
+        self.grid_height = math.ceil(height / self.cell_size) + 2
         self.terrain_grid = [[None for _ in range(self.grid_width)] for _ in range(self.grid_height)]
         self.simplex = opensimplex.OpenSimplex(seed=random.randint(0, 10000))
         self.entities: Dict[str, List[Entity]] = {
@@ -43,6 +42,7 @@ class GameWorld:
         self.add_road()  # Call after initializing entities
         self.generate_terrain()  # Move terrain generation after road creation
         self.place_plants()  # <-- Add this line after terrain generation
+        self.economy = economy  # Store reference to Economy
 
         # Now generate water bodies, skipping road positions
         for _ in range(NUM_WATER_SOURCES):
@@ -110,6 +110,11 @@ class GameWorld:
         for entity_list in self.entities.values():
             for entity in entity_list:
                 entity.update(deltaTime, self)
+        for jeep in self.entities.get("Jeep", []):
+            # Check if jeep has reached the end of the road
+            if hasattr(self, "road_exit") and jeep.position == self.road_exit:
+                if self.economy:
+                    self.economy.add_money(100)  # Add money when jeep completes tour
 
     def add_road(self):
         """Generate a single wide road from left to right, only in the central 50% of the map height."""
