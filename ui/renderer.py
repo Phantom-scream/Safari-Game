@@ -58,6 +58,17 @@ class Renderer:
                                 )
                                 pygame.draw.rect(surface, color, rect)
                                 
+        for y in range(gameState.world.grid_height):
+            for x in range(gameState.world.grid_width):
+                cell = gameState.world.terrain_grid[y][x]
+                if cell == "grass":
+                    screen_pos = self.camera.worldToScreen(Vector2(x * gameState.world.cell_size, y * gameState.world.cell_size))
+                    pygame.draw.rect(
+                        surface,
+                        (144, 238, 144),  # Light green
+                        (screen_pos.x, screen_pos.y, gameState.world.cell_size, gameState.world.cell_size)
+                    )
+
         # Render entities and UI on top
         self.renderEntities(surface, gameState.world.entities)
         self.renderUI(surface, gameState.uiManager)

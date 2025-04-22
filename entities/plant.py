@@ -1,12 +1,13 @@
+from abc import ABC
 from ui.vector2 import Vector2
 import pygame
 from entities.entity import Entity
 
-class Plant(Entity):
+class Plant(Entity, ABC):  # Inherit from ABC
     def __init__(self, position: Vector2, size: float, nutritionalValue: float):
         super().__init__(position, size, 'Plant')
         self.nutritionalValue = nutritionalValue
-        self.color = (0, 255, 0)
+        self.color = (255, 255, 0)
 
     def beEaten(self, amount: float) -> float:
         eaten = min(amount, self.nutritionalValue)
@@ -36,7 +37,3 @@ class Tree(Plant):
         super().__init__(position, size, nutritionalValue)
         self.color = (0, 100, 0)  # Dark green
 
-class GrassArea(Plant):
-    def __init__(self, position: Vector2, size: float = 20, nutritionalValue: float = 40):
-        super().__init__(position, size, nutritionalValue)
-        self.color = (124, 252, 0)  # Lawn green

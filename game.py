@@ -13,7 +13,6 @@ from ui.minimap import Minimap
 from ui.ui_manager import Button
 from entities.plant import Plant 
 from entities.plant import Bush 
-from entities.plant import GrassArea
 from entities.plant import Tree 
 
 
@@ -93,11 +92,10 @@ class Game:
 
     def place_plants(self, num_bushes=40, num_trees=30, num_grass_areas=20):
         placed_positions = set()
-        # Place Bush and Tree only on "soil"
         for PlantClass, count, allowed_cell in [
             (Bush, num_bushes, "soil"),
             (Tree, num_trees, "soil"),
-            (GrassArea, num_grass_areas, "grass")
+            # (GrassArea, num_grass_areas, "grass")  # <-- Remove or comment this out
         ]:
             for _ in range(count):
                 tries = 0
@@ -110,6 +108,7 @@ class Game:
                         cell == allowed_cell
                         and not self.is_on_road(pos)
                         and not self.is_on_water_or_hill(pos)
+                        and not self.is_near_water(x, y, radius=2)  # <-- Add this line
                         and (x, y) not in placed_positions
                     ):
                         plant = PlantClass(pos)
