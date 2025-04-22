@@ -38,19 +38,24 @@ class Renderer:
                     
                     if color: # If a valid color was found for this terrain
                         # Calculate screen position based on camera (assuming camera.position is top-left)
-                        screen_x = world_x - camera.position.x
-                        screen_y = world_y - camera.position.y
+                        screen_x = (world_x - camera.position.x) * camera.zoom + camera.viewportWidth / 2
+                        screen_y = (world_y - camera.position.y) * camera.zoom + camera.viewportHeight / 2
                         
                         # Calculate clipped rectangle size for drawing
-                        rect_width = min(cell_size, world_width - world_x)
-                        rect_height = min(cell_size, world_height - world_y)
+                        rect_width = min(cell_size, world_width - world_x) * camera.zoom
+                        rect_height = min(cell_size, world_height - world_y) * camera.zoom
                         
                         # Only draw if the rectangle has positive dimensions
                         if rect_width > 0 and rect_height > 0:
                             # Check if the rectangle is visible on screen (optional optimization)
                             if (screen_x < camera.viewportWidth and screen_x + rect_width > 0 and
                                 screen_y < camera.viewportHeight and screen_y + rect_height > 0):
-                                rect = pygame.Rect(screen_x, screen_y, rect_width, rect_height)
+                                rect = pygame.Rect(
+                                    int(screen_x),
+                                    int(screen_y),
+                                    int(rect_width + 1),   # Overdraw width by 1 pixel
+                                    int(rect_height + 1)   # Overdraw height by 1 pixel
+                                )
                                 pygame.draw.rect(surface, color, rect)
                                 
         # Render entities and UI on top

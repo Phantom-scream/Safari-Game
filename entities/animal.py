@@ -12,7 +12,6 @@ class Animal(Entity, ABC):
     current_species_index = 0 
     last_reproduction_times = {}
 
-
     def __init__(self, position: Vector2, size: float, entityType: str, speed: float):
         super().__init__(position, size, entityType)
         self.speed = speed
@@ -20,10 +19,10 @@ class Animal(Entity, ABC):
         self.color = (200, 50, 50) 
         self.vision_range = 100
         self.known_water_sources = []
-        self.thirst_timer = time.time()
         self.reproduction_timer = time.time() 
         self.is_reproducing = False 
         self.limit = 0 
+        self.is_dead = False  # Attribute to track if the animal is dead
 
         if type(self).__name__ not in Animal.species_list:
             Animal.species_list.append(type(self).__name__)
@@ -33,8 +32,8 @@ class Animal(Entity, ABC):
         return random.randint(1, cls.limit)
 
     def move(self):
-        if self.is_reproducing:
-            return  # Stop moving while reproducing
+        if self.is_reproducing or self.is_dead:
+            return  # Stop moving if reproducing or dead
 
         dx, dy = self.target.x - self.position.x, self.target.y - self.position.y
         distance = math.sqrt(dx**2 + dy**2)
@@ -50,16 +49,25 @@ class Animal(Entity, ABC):
             )
 
     def find_water(self, world):
+        if self.is_dead:
+            return  # Dead animals cannot find water
+
         for water in world.entities['WaterBody']:
             distance = self.position.distanceTo(water.position)
             if distance < self.vision_range and water.position not in self.known_water_sources:
                 self.known_water_sources.append(water.position)
 
     def go_to_water(self):
+        if self.is_dead:
+            return  # Dead animals cannot move to water
+
         if self.known_water_sources:
             self.target = min(self.known_water_sources, key=lambda w: self.position.distanceTo(w))
 
     def reproduce(self, world):
+        if self.is_dead:  # Dead animals cannot reproduce
+            return
+
         current_time = time.time()
         species_name = type(self).__name__
 
@@ -67,14 +75,14 @@ class Animal(Entity, ABC):
         if species_name not in Animal.last_reproduction_times:
             Animal.last_reproduction_times[species_name] = 0
 
-        # Enforce species-wide 10-second cooldown
+        # Enforce species-wide 15-second cooldown
         if current_time - Animal.last_reproduction_times[species_name] < 15:
             return
 
         # Look for a partner nearby
         nearby_animals = [
             animal for animal in world.entities.get(species_name, [])
-            if animal != self and not animal.is_reproducing and self.position.distanceTo(animal.position) < self.size * 2
+            if animal != self and not animal.is_reproducing and not animal.is_dead and self.position.distanceTo(animal.position) < self.size * 2
         ]
 
         if nearby_animals:
@@ -92,23 +100,24 @@ class Animal(Entity, ABC):
                 mid_x + random.uniform(-20, 20),
                 mid_y + random.uniform(-20, 20)
             )
-            new_animal = type(self)(new_position)
+            new_animal = type(self)(new_position)  # New animals are created without age
             world.addEntity(new_animal)
 
             print(f"{species_name} pair reproduced at {new_position}. Total {species_name}: {len(world.entities[species_name])}")
 
+    def mark_as_dead(self):
+        """Mark the animal as dead."""
+        self.is_dead = True
 
     def update(self, deltaTime: float, world: 'GameWorld'):
+        if self.is_dead:
+            return  # Dead animals do not update
+
         if self.is_reproducing and time.time() - self.reproduction_timer > 4:
             self.is_reproducing = False
 
         self.move()
         self.find_water(world)
-
-        if time.time() - self.thirst_timer > 8:
-            self.go_to_water()
-            self.thirst_timer = time.time()
-
         self.reproduce(world)
 
     def render(self, surface: pygame.Surface, camera: 'Camera'):

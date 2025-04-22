@@ -10,6 +10,7 @@ from gamelogic.economy import Economy
 from ui.renderer import Renderer
 from ui.main_screen import MainScreen
 from ui.minimap import Minimap
+from ui.ui_manager import Button
 
 class Game:
     def __init__(self, width, height):
@@ -22,6 +23,39 @@ class Game:
         self.uiManager = UIManager()
         self.minimap = Minimap(WORLD_WIDTH, WORLD_HEIGHT, width, height)  # Add minimap
         self.running = True
+
+
+        # ...existing code...
+        self.minimap = Minimap(WORLD_WIDTH, WORLD_HEIGHT, width, height)
+        self.running = True
+
+        # --- Add Zoom Buttons ---
+        button_width = 40
+        button_height = 40
+        minimap_x, minimap_y = self.minimap.position
+        minimap_w, minimap_h = self.minimap.minimap_width, self.minimap.minimap_height
+        spacing = 10
+
+        zoom_in_button = Button(
+            "+",
+            (minimap_x, minimap_y + minimap_h + spacing),
+            (button_width, button_height),
+            self.zoom_in
+        )
+        zoom_out_button = Button(
+            "-",
+            (minimap_x + button_width + spacing, minimap_y + minimap_h + spacing),
+            (button_width, button_height),
+            self.zoom_out
+        )
+        self.uiManager.addComponent(zoom_in_button)
+        self.uiManager.addComponent(zoom_out_button)
+
+    def zoom_in(self):
+        self.renderer.camera.zoom_in()
+
+    def zoom_out(self):
+        self.renderer.camera.zoom_out()
 
     def update(self, deltaTime: float):
         """Update all objects (animals, etc.)"""
@@ -38,7 +72,7 @@ class Game:
         surface.fill((238, 214, 175))  # Desert background
         self.renderer.render(surface, self)
         self.uiManager.render(surface)
-        self.minimap.render(surface, self.renderer.camera, self.world.entities)  # Render minimap
+        self.minimap.render(surface, self.renderer.camera, self.world, self.world.entities)  # Render minimap
 
     def handleEvents(self):
         """Handle input events"""
