@@ -15,6 +15,7 @@ from entities.plant import Plant
 from entities.plant import Bush 
 from entities.plant import Tree 
 from entities.animal import Animal
+import math
 
 
 class Game:
@@ -32,6 +33,13 @@ class Game:
         self.uiManager = UIManager()
         self.minimap = Minimap(WORLD_WIDTH, WORLD_HEIGHT, width, height)  # Add minimap
         self.running = True
+
+        self.speed_modes = {
+            "hour": 1.0,
+            "day": 5.0,
+            "week": 20.0
+        }
+        self.current_speed_mode = "hour"
 
         self.world.generate_terrain()
         self.world.generate_grassy_areas()
@@ -59,28 +67,69 @@ class Game:
         self.uiManager.addComponent(zoom_in_button)
         self.uiManager.addComponent(zoom_out_button)
 
+        # --- Add Speed Mode Buttons ---
+        speed_button_width = 60
+        speed_button_height = 32
+        speed_spacing = 8
+        speed_button_x = minimap_x - speed_button_width - 20  # 20px left of minimap
+        speed_button_y = minimap_y
+
+        def make_speed_button(label, mode, idx):
+            return Button(
+                label,
+                (speed_button_x, speed_button_y + idx * (speed_button_height + speed_spacing)),
+                (speed_button_width, speed_button_height),
+                lambda m=mode: self.set_speed_mode(m)
+            )
+
+        self.hour_button = make_speed_button("Hour", "hour", 0)
+        self.day_button = make_speed_button("Day", "day", 1)
+        self.week_button = make_speed_button("Week", "week", 2)
+
+        self.uiManager.addComponent(self.hour_button)
+        self.uiManager.addComponent(self.day_button)
+        self.uiManager.addComponent(self.week_button)
+
+        self.time_of_day = 0.0  # 0.0 to 1.0, where 0.0 is midnight, 0.5 is noon
+        self.day_length = 120.0  # seconds for a full day-night cycle (adjust as you like)
+        self.is_night = False
+
     def zoom_in(self):
         self.renderer.camera.zoom_in()
 
     def zoom_out(self):
         self.renderer.camera.zoom_out()
 
+    def set_speed_mode(self, mode):
+        self.current_speed_mode = mode
+
     def update(self, deltaTime: float):
-        """Update all objects (animals, etc.)"""
-        if not self.uiManager.activeMenu:  # Pause updates when the menu is active
-            self.timeManager.update()
-            deltaTime = self.timeManager.get_delta_time()
+        if not self.uiManager.activeMenu:
+            speed_factor = self.speed_modes[self.current_speed_mode]
+            deltaTime *= speed_factor
+
+            # --- Day/Night cycle update ---
+            self.time_of_day += deltaTime / self.day_length
+            if self.time_of_day > 1.0:
+                self.time_of_day -= 1.0
+            self.is_night = self.time_of_day < 0.25 or self.time_of_day > 0.75  # Night is first/last quarter
 
             self.world.update(deltaTime)
-            # self.economy.update(deltaTime)  # <-- Remove or comment out this line
             self.renderer.handleInput(deltaTime)
 
     def render(self, surface):
-        """Render all objects"""
         surface.fill((238, 214, 175))  # Desert background
         self.renderer.render(surface, self)
         self.uiManager.render(surface)
-        self.minimap.render(surface, self.renderer.camera, self.world, self.world.entities)  # Render minimap
+        self.minimap.render(surface, self.renderer.camera, self.world, self.world.entities)
+
+        # --- Day/Night overlay ---
+        # Calculate brightness: 1.0 at noon, 0.4 at midnight
+        brightness = 0.4 + 0.6 * (math.cos(self.time_of_day * 2 * math.pi) + 1) / 2
+        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        night_alpha = int((1.0 - brightness) * 180)  # 0 (day) to 180 (night)
+        overlay.fill((0, 0, 40, night_alpha))
+        surface.blit(overlay, (0, 0))
 
         # --- Stylish money bar (top-right corner) ---
         bar_width, bar_height = 220, 50
@@ -210,13 +259,15 @@ if __name__ == "__main__":
         # Handle events
         game.handleEvents()
 
+        # --- FIX: Get deltaTime at the start of the loop ---
+        deltaTime = clock.tick(60) / 1000.0  # Limit to 60 FPS and get seconds since last frame
+
         # Update world
-        game.update(clock.get_time() / 1000.0)  # Pass delta time in seconds
+        game.update(deltaTime)  # Pass delta time in seconds
 
         # Draw world
         game.render(screen)
 
         pygame.display.flip()
-        clock.tick(60)  # Limit to 60 FPS
 
     pygame.quit()
