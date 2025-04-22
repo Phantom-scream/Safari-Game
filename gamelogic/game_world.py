@@ -14,6 +14,7 @@ from ui.vector2 import Vector2
 import random
 from entities.road import Road  # 1. Import the Road class
 from entities.jeep import Jeep  # Add this import
+from entities.plant import Bush, Tree
 
 class GameWorld:
     def __init__(self, width, height, cell_size=20):
@@ -33,13 +34,15 @@ class GameWorld:
             'Hyena': [Hyena(Vector2(random.randint(0, width), random.randint(0, height))) for _ in range(Hyena.get_number())],
             'Crocodile': [Crocodile(Vector2(random.randint(0, width), random.randint(0, height))) for _ in range(Crocodile.get_number())],
             'WaterBody': [],
-            'Plant': [Plant(Vector2(random.randint(0, width), random.randint(0, height)), 15, 100) for _ in range(NUM_PLANTS)],
+            'Bush': [],         # Add Bush list
+            'Tree': [],         # Add Tree list
             'Poacher' : [Poacher(Vector2(random.randint(0, width), random.randint(0, height)), 20, 2.5) for _ in range(NUM_POACHERS)],
             "Road": [],
             "Jeep": [],  # Add Jeep list to entities
         }
         self.add_road()  # Call after initializing entities
         self.generate_terrain()  # Move terrain generation after road creation
+        self.place_plants()  # <-- Add this line after terrain generation
 
         # Now generate water bodies, skipping road positions
         for _ in range(NUM_WATER_SOURCES):
@@ -80,7 +83,7 @@ class GameWorld:
                     # Place a WaterBody instance in the grid
                     self.terrain_grid[y][x] = WaterBody(Vector2(world_x, world_y), self.cell_size)
                 elif n < 0.5:
-                    self.terrain_grid[y][x] = "grass"
+                    self.terrain_grid[y][x] = "soil"  # Changed from "grass" to "soil"
                 else:
                     self.terrain_grid[y][x] = "hill"
 
@@ -127,3 +130,90 @@ class GameWorld:
                 new_road_y = road_y + direction * self.cell_size
                 if min_y + road_width // 2 <= new_road_y <= max_y - road_width // 2:
                     road_y = new_road_y
+
+    def is_on_water_or_hill(self, position: Vector2) -> bool:
+        x = int(position.x // self.cell_size)
+        y = int(position.y // self.cell_size)
+        if 0 <= y < self.grid_height and 0 <= x < self.grid_width:
+            cell = self.terrain_grid[y][x]
+            return isinstance(cell, WaterBody) or cell == "hill"
+        return False
+
+    def place_plants(self, num_bushes=40, num_trees=30, num_grass_areas=50):
+        placed_positions = set()
+        for PlantClass, count in [(Bush, num_bushes), (Tree, num_trees)]:
+            for _ in range(count):
+                tries = 0
+                while tries < 1000:
+                    x = random.randint(0, self.grid_width - 1)
+                    y = random.randint(0, self.grid_height - 1)
+                    cell = self.terrain_grid[y][x]
+                    pos = Vector2(x * self.cell_size, y * self.cell_size)
+                    if (
+                        cell == "soil"
+                        and not self.is_on_road(pos)
+                        and not self.is_on_water_or_hill(pos)
+                        and not self.is_near_water(x, y, radius=2)
+                        and not self.is_near_road(x, y, radius=2)  # <-- Add this line
+                        and (x, y) not in placed_positions
+                    ):
+                        plant = PlantClass(pos)
+                        self.entities[type(plant).__name__].append(plant)
+                        placed_positions.add((x, y))
+                        break
+                    tries += 1
+
+    def generate_grassy_areas(self, num_patches=8, min_size=10, max_size=30):
+        for _ in range(num_patches):
+            patch_size = random.randint(min_size, max_size)
+            # Start at a random soil cell not near a road
+            tries = 0
+            while tries < 100:
+                x = random.randint(0, self.grid_width - 1)
+                y = random.randint(0, self.grid_height - 1)
+                if (
+                    self.terrain_grid[y][x] == "soil"
+                    and not self.is_on_road(Vector2(x * self.cell_size, y * self.cell_size))
+                    and not self.is_near_road(x, y, radius=2)
+                ):
+                    break
+                tries += 1
+            else:
+                continue  # Couldn't find a good start, skip this patch
+
+            cells = set()
+            cells.add((x, y))
+            self.terrain_grid[y][x] = "grass"
+            for _ in range(patch_size):
+                cx, cy = random.choice(list(cells))
+                # Randomly move in one direction
+                nx = min(max(cx + random.choice([-1, 0, 1]), 0), self.grid_width - 1)
+                ny = min(max(cy + random.choice([-1, 0, 1]), 0), self.grid_height - 1)
+                if (
+                    self.terrain_grid[ny][nx] == "soil"
+                    and not self.is_on_road(Vector2(nx * self.cell_size, ny * self.cell_size))
+                    and not self.is_near_road(nx, ny, radius=2)
+                ):
+                    self.terrain_grid[ny][nx] = "grass"
+                    cells.add((nx, ny))
+
+    # Add this to your GameWorld class
+    def is_near_road(self, x, y, radius=2):
+        for dy in range(-radius, radius + 1):
+            for dx in range(-radius, radius + 1):
+                nx, ny = x + dx, y + dy
+                if 0 <= ny < self.grid_height and 0 <= nx < self.grid_width:
+                    pos = Vector2(nx * self.cell_size, ny * self.cell_size)
+                    if self.is_on_road(pos):
+                        return True
+        return False
+
+    def is_near_water(self, x, y, radius=2):
+        for dy in range(-radius, radius + 1):
+            for dx in range(-radius, radius + 1):
+                nx, ny = x + dx, y + dy
+                if 0 <= ny < self.grid_height and 0 <= nx < self.grid_width:
+                    cell = self.terrain_grid[ny][nx]
+                    if isinstance(cell, WaterBody):
+                        return True
+        return False
