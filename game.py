@@ -38,6 +38,33 @@ class Game:
         self.running = True
         self.difficulty = difficulty
 
+        # Win/loss thresholds by difficulty
+        self.win_conditions = {
+            "easy": {
+                "months_required": 3,
+                "min_visitors": 80,
+                "min_herbivores": 20,
+                "min_carnivores": 8,
+                "min_capital": 800,
+            },
+            "medium": {
+                "months_required": 6,
+                "min_visitors": 120,
+                "min_herbivores": 30,
+                "min_carnivores": 12,
+                "min_capital": 1200,
+            },
+            "hard": {
+                "months_required": 12,
+                "min_visitors": 200,
+                "min_herbivores": 50,
+                "min_carnivores": 20,
+                "min_capital": 2000,
+            }
+        }
+        self.win_streak = 0  # Number of consecutive months meeting win conditions
+        self.month_timer = 0  # Tracks in-game time for months
+
         self.speed_modes = {
             "hour": 1.0,
             "day": 5.0,
@@ -48,6 +75,7 @@ class Game:
         self.world.generate_terrain()
         self.world.generate_grassy_areas()
         self.world.place_plants()
+        self.world.spawn_animals()  # <-- Make sure this is called!
 
         # --- Add Zoom Buttons ---
         zoom_button_height = 48  # Increased height
@@ -111,7 +139,7 @@ class Game:
 
     def update(self, deltaTime: float):
         if self.uiManager.paused:
-            return  # Skip updating game logic when paused
+            return
         if not self.uiManager.activeMenu:
             speed_factor = self.speed_modes[self.current_speed_mode]
             deltaTime *= speed_factor
@@ -138,6 +166,48 @@ class Game:
                     jeep.passengers = [Tourist(f"Tourist {j+1}") for j in range(4)]  # Reset passengers
                 self.world.entities["Jeep"] = all_jeeps
                 self.pending_jeeps.clear()
+
+            # --- WIN/LOSS CHECKS ---
+            self.month_timer += deltaTime
+            if self.month_timer >= 30:  # 30 in-game days = 1 month
+                self.month_timer -= 30
+
+                # Count entities
+                num_visitors = len(self.world.entities.get("Tourist", []))
+                num_herbivores = sum(1 for a in self.world.entities.get("Herbivore", []))
+                num_carnivores = sum(1 for a in self.world.entities.get("Carnivore", []))
+                capital = self.economy.money
+
+                # Get thresholds
+                cond = self.win_conditions[self.difficulty]
+                meets = (
+                    num_visitors >= cond["min_visitors"] and
+                    num_herbivores >= cond["min_herbivores"] and
+                    num_carnivores >= cond["min_carnivores"] and
+                    capital >= cond["min_capital"]
+                )
+                if meets:
+                    self.win_streak += 1
+                else:
+                    self.win_streak = 0
+
+                if self.win_streak >= cond["months_required"]:
+                    self.running = False
+                    show_win(pygame.display.get_surface())
+                    return
+
+            # --- LOSS CHECKS ---
+            if self.economy.money <= 0:
+                self.running = False
+                show_game_over(pygame.display.get_surface(), "You went bankrupt!")
+                return
+
+            num_herbivores = sum(1 for a in self.world.entities.get("Herbivore", []))
+            num_carnivores = sum(1 for a in self.world.entities.get("Carnivore", []))
+            if num_herbivores + num_carnivores == 0:
+                self.running = False
+                show_game_over(pygame.display.get_surface(), "All animals are extinct!")
+                return
 
     def render(self, surface):
         surface.fill((238, 214, 175))  # Desert background
@@ -263,6 +333,75 @@ def show_rules(screen):
         pygame.display.flip()
 
 
+def show_win(screen):
+    import pygame
+    from ui.ui_manager import Button
+    running = True
+    font = pygame.font.Font(None, 72)
+    small_font = pygame.font.Font(None, 36)
+    # Create buttons
+    menu_button = Button("Main Menu", (screen.get_width() // 2 - 120, 350), (110, 50), lambda: "menu")
+    exit_button = Button("Exit", (screen.get_width() // 2 + 10, 350), (110, 50), lambda: "exit")
+    buttons = [menu_button, exit_button]
+    while running:
+        screen.fill((200, 255, 200))
+        text = font.render("You Win!", True, (0, 128, 0))
+        screen.blit(text, (screen.get_width() // 2 - text.get_width() // 2, 150))
+        info = small_font.render("Congratulations!", True, (0, 0, 0))
+        screen.blit(info, (screen.get_width() // 2 - info.get_width() // 2, 250))
+        for button in buttons:
+            button.render(screen)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                running = False
+                return "menu"
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if menu_button.is_hovered(pygame.mouse.get_pos()):
+                    running = False
+                    return "menu"
+                if exit_button.is_hovered(pygame.mouse.get_pos()):
+                    pygame.quit()
+                    exit()
+        pygame.display.flip()
+
+def show_game_over(screen, reason="Game Over"):
+    import pygame
+    from ui.ui_manager import Button
+    running = True
+    font = pygame.font.Font(None, 72)
+    small_font = pygame.font.Font(None, 36)
+    # Create buttons
+    menu_button = Button("Main Menu", (screen.get_width() // 2 - 120, 350), (110, 50), lambda: "menu")
+    exit_button = Button("Exit", (screen.get_width() // 2 + 10, 350), (110, 50), lambda: "exit")
+    buttons = [menu_button, exit_button]
+    while running:
+        screen.fill((255, 200, 200))
+        text = font.render("Game Over!", True, (200, 0, 0))
+        screen.blit(text, (screen.get_width() // 2 - text.get_width() // 2, 150))
+        info = small_font.render(reason, True, (0, 0, 0))
+        screen.blit(info, (screen.get_width() // 2 - info.get_width() // 2, 250))
+        for button in buttons:
+            button.render(screen)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                running = False
+                return "menu"
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if menu_button.is_hovered(pygame.mouse.get_pos()):
+                    running = False
+                    return "menu"
+                if exit_button.is_hovered(pygame.mouse.get_pos()):
+                    pygame.quit()
+                    exit()
+        pygame.display.flip()
+
+
 class ShopMenu:
     def __init__(self, game):
         self.game = game
@@ -302,33 +441,39 @@ if __name__ == "__main__":
         exit()
 
     main_screen = MainScreen(screen, start_game, lambda: show_rules(screen), exit_game)
-    main_screen_active = True
 
-    while main_screen_active:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                exit()
-            main_screen.handle_event(event)
+    while True:
+        # Main menu loop
+        main_screen_active = True
+        while main_screen_active:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                main_screen.handle_event(event)
 
-        main_screen.render()
-        pygame.display.flip()
-        clock.tick(60)
+            main_screen.render()
+            pygame.display.flip()
+            clock.tick(60)
 
+        # Game loop
+        while game.running:
+            game.handleEvents()
+            deltaTime = clock.tick(60) / 1000.0
+            game.update(deltaTime)
+            game.render(screen)
+            pygame.display.flip()
 
-    while game.running:
-        # Handle events
-        game.handleEvents()
+        # --- End screen logic ---
+        result = None
+        if game.win_streak >= game.win_conditions[game.difficulty]["months_required"]:
+            result = show_win(screen)
+        else:
+            result = show_game_over(screen, "Game Over!")
 
-        # --- FIX: Get deltaTime at the start of the loop ---
-        deltaTime = clock.tick(60) / 1000.0  # Limit to 60 FPS and get seconds since last frame
-
-        # Update world
-        game.update(deltaTime)  # Pass delta time in seconds
-
-        # Draw world
-        game.render(screen)
-
-        pygame.display.flip()
+        if result == "menu":
+            continue  # Restart the main menu loop
+        else:
+            break  # Exit the program
 
     pygame.quit()

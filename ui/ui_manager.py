@@ -38,8 +38,7 @@ class Button(UIComponent):
 
     def render(self, surface):
         mouse_pos = pygame.mouse.get_pos()
-        is_hovered = self.position[0] <= mouse_pos[0] <= self.position[0] + self.size[0] and \
-                     self.position[1] <= mouse_pos[1] <= self.position[1] + self.size[1]
+        is_hovered = self.is_hovered(mouse_pos)
         color = self.hover_color if is_hovered else self.color
         pygame.draw.rect(surface, color, (*self.position, *self.size))
         text_surface = self.font.render(self.text, True, (0, 0, 0))
@@ -48,9 +47,14 @@ class Button(UIComponent):
     def handleEvent(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mouse_pos = pygame.mouse.get_pos()
-            if self.position[0] <= mouse_pos[0] <= self.position[0] + self.size[0] and \
-               self.position[1] <= mouse_pos[1] <= self.position[1] + self.size[1]:
+            if self.is_hovered(mouse_pos):
                 self.callback()
+
+    def is_hovered(self, mouse_pos):
+        x, y = self.position
+        w, h = self.size
+        mx, my = mouse_pos
+        return x <= mx <= x + w and y <= my <= y + h
 
 class Menu:
     def __init__(self, ui_manager):
