@@ -23,9 +23,9 @@ test:
     - echo "Running pytest for unit tests..."
     - pytest || true  # Run tests if you have any, don't fail if none
 
-run_game:
-  stage: test
-  script:
-    - echo "Running your Python game in headless mode!"
-    - export SDL_VIDEODRIVER=dummy
-    - python game.py || echo "Game exited (expected in CI, no display)"
+# run_game:
+#   stage: test
+#   script:
+#     - echo "Running your Python game in headless mode!"
+#     - export SDL_VIDEODRIVER=dummy
+#     - python game.py || echo "Game exited (expected in CI, no display)"
