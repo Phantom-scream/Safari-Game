@@ -109,6 +109,8 @@ class Game:
         self.current_speed_mode = mode
 
     def update(self, deltaTime: float):
+        if self.uiManager.paused:
+            return  # Skip updating game logic when paused
         if not self.uiManager.activeMenu:
             speed_factor = self.speed_modes[self.current_speed_mode]
             deltaTime *= speed_factor

@@ -248,11 +248,12 @@ class UIManager:
     def __init__(self):
         self.components: List[UIComponent] = []
         self.activeMenu: Menu = None
-        # Smaller buttons, no space between
         button_w, button_h = 90, 40
         self.shopButton = Button("Shop", (10, 10), (button_w, button_h), self.toggleShop, font_size=20)
         self.menuButton = Button("Menu", (10 + button_w, 10), (button_w, button_h), self.toggleMenu, font_size=20)
+        self.pauseButton = Button("Pause", (10 + 2 * button_w, 10), (button_w, button_h), self.togglePause, font_size=20)
         self.shopMenu = None
+        self.paused = False
 
     def addComponent(self, component: UIComponent):
         self.components.append(component)
@@ -284,27 +285,47 @@ class UIManager:
     def hideShop(self):
         self.shopMenu = None
 
+    def togglePause(self):
+        self.paused = not self.paused
+
     def handleEvent(self, event) -> bool:
         if self.activeMenu:
             self.activeMenu.handleEvent(event)
             return True
         self.menuButton.handleEvent(event)
         self.shopButton.handleEvent(event)
+        self.pauseButton.handleEvent(event)
         for component in self.components:
             component.handleEvent(event)
         if self.shopMenu:
             self.shopMenu.handleEvent(event)
+        if self.paused and hasattr(self, "continueButton"):
+            self.continueButton.handleEvent(event)
+            return True
         return False
 
     def render(self, surface):
         self.menuButton.render(surface)
         self.shopButton.render(surface)
+        self.pauseButton.render(surface)
         for component in self.components:
             component.render(surface)
         if self.activeMenu:
             self.activeMenu.render(surface)
         if self.shopMenu:
             self.shopMenu.render(surface)
+        if self.paused:
+            # Draw Continue button overlay
+            overlay = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 120))
+            surface.blit(overlay, (0, 0))
+            # Draw Continue button in the center
+            continue_w, continue_h = 200, 60
+            screen_w, screen_h = surface.get_size()
+            continue_x = (screen_w - continue_w) // 2
+            continue_y = (screen_h - continue_h) // 2
+            self.continueButton = Button("Continue", (continue_x, continue_y), (continue_w, continue_h), self.togglePause, font_size=28)
+            self.continueButton.render(surface)
 
     def get_game_instance(self):
         import __main__
