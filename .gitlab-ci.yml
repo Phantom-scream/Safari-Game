@@ -3,20 +3,29 @@ image: python:3.11
 before_script:
   - python --version
   - pip install --upgrade pip
-  - pip install pygame
-  # If you have a requirements.txt, use:
-  # - pip install -r requirements.txt
+  - pip install -r requirements.txt
 
 stages:
+  - lint
   - test
+
+lint:
+  stage: lint
+  script:
+    - echo "Running flake8 for code style checks..."
+    - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+    - echo "Running mypy for type checks..."
+    - mypy . || true  # Don't fail if you don't use type hints
+
+test:
+  stage: test
+  script:
+    - echo "Running pytest for unit tests..."
+    - pytest || true  # Run tests if you have any, don't fail if none
 
 run_game:
   stage: test
   script:
-    - echo "Running your Python game!"
-    - python -m pip install pytest
-    - python -m pytest || true  # Run tests if you have any, don't fail if none
-    - |
-      # Try to run the game in headless mode (no display)
-      export SDL_VIDEODRIVER=dummy
-      python game.py || echo "Game exited (expected in CI, no display)"
+    - echo "Running your Python game in headless mode!"
+    - export SDL_VIDEODRIVER=dummy
+    - python game.py || echo "Game exited (expected in CI, no display)"
