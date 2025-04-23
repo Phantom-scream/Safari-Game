@@ -8,31 +8,41 @@ class MainScreen:
         self.show_rules_callback = show_rules_callback
         self.exit_game_callback = exit_game_callback
 
+        # Difficulty selection
+        self.selected_difficulty = "easy"
+
         # Buttons
         self.buttons = [
-            Button("Start Game", (50, 200), (200, 50), self.start_game_callback),
-            Button("Exit", (50, 300), (200, 50), self.exit_game_callback),
-            Button("Rules", (50, 400), (200, 50), self.show_rules_callback),
+            Button("Easy", (50, 150), (200, 40), lambda: self.select_difficulty("easy")),
+            Button("Medium", (50, 200), (200, 40), lambda: self.select_difficulty("medium")),
+            Button("Hard", (50, 250), (200, 40), lambda: self.select_difficulty("hard")),
+            Button("Start Game", (50, 320), (200, 50), self.start_game),
+            Button("Rules", (50, 390), (200, 50), self.show_rules_callback),
+            Button("Exit", (50, 460), (200, 50), self.exit_game_callback),
         ]
 
         # Load an image (placeholder for now)
-        self.image = pygame.image.load("ui/haci.png")  # Replace with your image path
-        self.image = pygame.transform.scale(self.image, (300, 300))  # Resize the image
+        self.image = pygame.image.load("ui/haci.png")
+        self.image = pygame.transform.scale(self.image, (300, 300))
+
+    def select_difficulty(self, difficulty):
+        self.selected_difficulty = difficulty
+
+    def start_game(self):
+        # Pass the selected difficulty to the callback
+        self.start_game_callback(self.selected_difficulty)
 
     def render(self):
-        # Background color
         self.screen.fill((238, 214, 175))
-
-        # Title
         font = pygame.font.Font(None, 72)
         title_surface = font.render("Safari Game", True, (0, 0, 0))
         self.screen.blit(title_surface, (50, 50))
-
-        # Render buttons
         for button in self.buttons:
             button.render(self.screen)
-
-        # Render image on the right side
+        # Highlight selected difficulty
+        font = pygame.font.Font(None, 28)
+        diff_text = font.render(f"Selected: {self.selected_difficulty.title()}", True, (0, 0, 0))
+        self.screen.blit(diff_text, (270, 160))
         self.screen.blit(self.image, (500, 150))
 
     def handle_event(self, event):

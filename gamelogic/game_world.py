@@ -38,6 +38,8 @@ class GameWorld:
             'Poacher' : [Poacher(Vector2(random.randint(0, width), random.randint(0, height)), 20, 1.2) for _ in range(NUM_POACHERS)],
             "Road": [],
             "Jeep": [],  # Add Jeep list to entities
+            "Herbivore": [],
+            "Carnivore": []
         }
         self.add_road()  # Call after initializing entities
         self.generate_terrain()  # Move terrain generation after road creation
@@ -222,3 +224,46 @@ class GameWorld:
                     if isinstance(cell, WaterBody):
                         return True
         return False
+
+    def spawn_animals(self):
+        # Spawn Bison
+        for _ in range(Bison.get_number()):
+            pos = Vector2(random.randint(0, self.width), random.randint(0, self.height))
+            bison = Bison(pos)
+            self.entities["Bison"].append(bison)
+            self.entities["Herbivore"].append(bison)
+
+        # Spawn Zebra
+        for _ in range(Zebra.get_number()):
+            pos = Vector2(random.randint(0, self.width), random.randint(0, self.height))
+            zebra = Zebra(pos)
+            self.entities["Zebra"].append(zebra)
+            self.entities["Herbivore"].append(zebra)
+
+        # Spawn Antelope
+        for _ in range(Antelope.get_number()):
+            pos = Vector2(random.randint(0, self.width), random.randint(0, self.height))
+            antelope = Antelope(pos)
+            self.entities["Antelope"].append(antelope)
+            self.entities["Herbivore"].append(antelope)
+
+        # Spawn Lion
+        for _ in range(Lion.get_number()):
+            pos = Vector2(random.randint(0, self.width), random.randint(0, self.height))
+            lion = Lion(pos)
+            self.entities["Lion"].append(lion)
+            self.entities["Carnivore"].append(lion)
+
+        # Spawn Hyena
+        for _ in range(Hyena.get_number()):
+            pos = Vector2(random.randint(0, self.width), random.randint(0, self.height))
+            hyena = Hyena(pos)
+            self.entities["Hyena"].append(hyena)
+            self.entities["Carnivore"].append(hyena)
+
+        # Spawn Crocodile
+        for _ in range(Crocodile.get_number()):
+            pos = Vector2(random.randint(0, self.width), random.randint(0, self.height))
+            croc = Crocodile(pos)
+            self.entities["Crocodile"].append(croc)
+            self.entities["Carnivore"].append(croc)
