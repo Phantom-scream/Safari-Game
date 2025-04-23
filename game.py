@@ -22,7 +22,7 @@ import math
 
 
 class Game:
-    def __init__(self, width, height):
+    def __init__(self, width, height, difficulty="easy"):
         Animal.species_list = []
         Animal.last_reproduction_times = {}
         Animal.current_species_index = 0
@@ -36,6 +36,7 @@ class Game:
         self.uiManager = UIManager()
         self.minimap = Minimap(WORLD_WIDTH, WORLD_HEIGHT, width, height)  # Add minimap
         self.running = True
+        self.difficulty = difficulty
 
         self.speed_modes = {
             "hour": 1.0,
@@ -291,10 +292,10 @@ if __name__ == "__main__":
     clock = pygame.time.Clock()
 
     # Main screen
-    def start_game():
+    def start_game(difficulty="easy"):
         global main_screen_active, game
         main_screen_active = False
-        game = Game(SCREEN_WIDTH, SCREEN_HEIGHT)  # <-- Create a new Game (and GameWorld) each time
+        game = Game(SCREEN_WIDTH, SCREEN_HEIGHT, difficulty)  # Pass difficulty to Game
 
     def exit_game():
         pygame.quit()
