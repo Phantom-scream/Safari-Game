@@ -75,9 +75,8 @@ class Game:
         self.world.generate_terrain()
         self.world.generate_grassy_areas()
         self.world.place_plants()
-        self.world.spawn_animals()  # <-- Make sure this is called!
+        self.world.spawn_animals()
 
-        # --- Add Zoom Buttons ---
         zoom_button_height = 48  # Increased height
         zoom_button_width = self.minimap.minimap_width // 2  # Increased width (already full minimap width)
         minimap_x, minimap_y = self.minimap.position
@@ -88,19 +87,18 @@ class Game:
             (minimap_x, minimap_y + minimap_h),
             (zoom_button_width, zoom_button_height),
             self.zoom_in,
-            font_size=28  # Optional: make the "+" bigger
+            font_size=28
         )
         zoom_out_button = Button(
             "-",
             (minimap_x + zoom_button_width, minimap_y + minimap_h),
             (zoom_button_width, zoom_button_height),
             self.zoom_out,
-            font_size=28  # Optional: make the "-" bigger
+            font_size=28  
         )
         self.uiManager.addComponent(zoom_in_button)
         self.uiManager.addComponent(zoom_out_button)
 
-        # --- Add Speed Mode Buttons (vertical, left of minimap, no space) ---
         speed_button_width = 60  # You can adjust this width as you like
         speed_button_height = self.minimap.minimap_height // 3  # 3 buttons fill minimap height
         speed_button_x = minimap_x - speed_button_width  # Directly left of minimap, no space

@@ -1,3 +1,4 @@
+import pygame
 from entities.animal import Animal
 from ui.vector2 import Vector2
 import random
@@ -75,26 +76,47 @@ class Carnivore(Animal):
         # Continue with normal behavior
         super().update(deltaTime, world)
 
+    def render(self, surface: pygame.Surface, camera: 'Camera'):
+        screenPos = camera.worldToScreen(self.position)
+        size = self.size * camera.zoom
+        if hasattr(self, "sprite"):
+            scaled_sprite = pygame.transform.scale(self.sprite, (int(size), int(size)))
+            surface.blit(scaled_sprite, (screenPos.x, screenPos.y))
+        else:
+            pygame.draw.rect(surface, self.color, (screenPos.x, screenPos.y, size, size))
+
 
 class Lion(Carnivore):
     limit = 4
 
     def __init__(self, position: Vector2):
-        super().__init__(position, 25, 110)  # Set speed to 110
+        super().__init__(position, 60, 110)  # Set speed to 110
         self.color = (255, 165, 0)
+        self.sprite = pygame.image.load("assets/lion.png")
+        self.sprite.set_colorkey((0, 0, 0))
+        self.sprite = self.sprite.convert_alpha()
+        self.sprite = pygame.transform.scale(self.sprite, (self.size, self.size))
 
 
 class Hyena(Carnivore):
     limit = 6
 
     def __init__(self, position: Vector2):
-        super().__init__(position, 20, 115)  # Set speed to 115
+        super().__init__(position, 35, 115)  # Set speed to 115
         self.color = (128, 128, 128)
+        self.sprite = pygame.image.load("assets/hyena.png")
+        self.sprite.set_colorkey((0, 0, 0))
+        self.sprite = self.sprite.convert_alpha()
+        self.sprite = pygame.transform.scale(self.sprite, (self.size, self.size))
 
 
 class Crocodile(Carnivore):
     limit = 4
 
     def __init__(self, position: Vector2):
-        super().__init__(position, 30, 80)  # Set speed to 80
+        super().__init__(position, 45, 80)  # Set speed to 80
         self.color = (0, 100, 0)
+        self.sprite = pygame.image.load("assets/crocodile.png")
+        self.sprite.set_colorkey((0, 0, 0))
+        self.sprite = self.sprite.convert_alpha()
+        self.sprite = pygame.transform.scale(self.sprite, (self.size, self.size))
