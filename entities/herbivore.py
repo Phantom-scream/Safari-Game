@@ -61,7 +61,7 @@ class Bison(Herbivore):
     limit = 5
 
     def __init__(self, position: Vector2):
-        super().__init__(position, 40, 100)
+        super().__init__(position, 40, 100)  # Bison stays at 40
         self.color = (139, 69, 19)
         self.sprite = pygame.image.load("assets/bison.png")
         self.sprite.set_colorkey((0, 0, 0))
@@ -72,7 +72,7 @@ class Zebra(Herbivore):
     limit = 5
 
     def __init__(self, position: Vector2):
-        super().__init__(position, 20, 110)
+        super().__init__(position, 50, 110)  # Zebra is now size 60
         self.color = (255, 255, 255)
         self.sprite = pygame.image.load("assets/zebra.png")
         self.sprite.set_colorkey((0, 0, 0))
@@ -83,7 +83,7 @@ class Antelope(Herbivore):
     limit = 5
     
     def __init__(self, position: Vector2):
-        super().__init__(position, 20, 120)
+        super().__init__(position, 65, 120)  # Antelope is now size 70
         self.color = (210, 180, 140)
         self.sprite = pygame.image.load("assets/antelope.png")
         self.sprite.set_colorkey((0, 0, 0))

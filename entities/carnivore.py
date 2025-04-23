@@ -90,7 +90,7 @@ class Lion(Carnivore):
     limit = 4
 
     def __init__(self, position: Vector2):
-        super().__init__(position, 25, 110)  # Set speed to 110
+        super().__init__(position, 60, 110)  # Set speed to 110
         self.color = (255, 165, 0)
         self.sprite = pygame.image.load("assets/lion.png")
         self.sprite.set_colorkey((0, 0, 0))
@@ -102,7 +102,7 @@ class Hyena(Carnivore):
     limit = 6
 
     def __init__(self, position: Vector2):
-        super().__init__(position, 20, 115)  # Set speed to 115
+        super().__init__(position, 35, 115)  # Set speed to 115
         self.color = (128, 128, 128)
         self.sprite = pygame.image.load("assets/hyena.png")
         self.sprite.set_colorkey((0, 0, 0))
@@ -114,7 +114,7 @@ class Crocodile(Carnivore):
     limit = 4
 
     def __init__(self, position: Vector2):
-        super().__init__(position, 30, 80)  # Set speed to 80
+        super().__init__(position, 45, 80)  # Set speed to 80
         self.color = (0, 100, 0)
         self.sprite = pygame.image.load("assets/crocodile.png")
         self.sprite.set_colorkey((0, 0, 0))
