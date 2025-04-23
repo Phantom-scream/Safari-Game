@@ -35,7 +35,7 @@ class GameWorld:
             'WaterBody': [],
             'Bush': [],         # Add Bush list
             'Tree': [],         # Add Tree list
-            'Poacher' : [Poacher(Vector2(random.randint(0, width), random.randint(0, height)), 20, 2.5) for _ in range(NUM_POACHERS)],
+            'Poacher' : [Poacher(Vector2(random.randint(0, width), random.randint(0, height)), 20, 1.2) for _ in range(NUM_POACHERS)],
             "Road": [],
             "Jeep": [],  # Add Jeep list to entities
         }
