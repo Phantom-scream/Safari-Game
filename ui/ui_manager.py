@@ -1,5 +1,19 @@
 import pygame
 from typing import List
+import time
+
+PRICES = {
+    "Tree": 150,
+    "Bush": 100,
+    "Grass": 50,
+    "Antelope": 150,
+    "Zebra": 100,
+    "Bison": 170,
+    "Lion": 200,
+    "Hyena": 70,
+    "Crocodile": 180,
+    "Jeep": 300,
+}
 
 class UIComponent:
     def render(self, surface):
@@ -57,11 +71,179 @@ class Menu:
         pygame.quit()
         exit()
 
+class ShopMenu:
+    def __init__(self, ui_manager):
+        self.ui_manager = ui_manager
+        self.width = 180
+        self.height = 340
+        self.x = 50
+        self.y = 80
+        self.font = pygame.font.Font(None, 18)
+        self.section_font = pygame.font.Font(None, 22)
+        self.buttons = []
+        self.message = ""
+        self.message_time = 0
+
+        # Plants Section
+        self.plants_y = self.y + 30
+        button_w, button_h = 70, 22
+        button_x = self.x + 15
+        self.buttons.append(Button("Tree", (button_x, self.plants_y), (button_w, button_h), lambda: self.purchase("Tree")))
+        self.buttons.append(Button("Bush", (button_x, self.plants_y + 26), (button_w, button_h), lambda: self.purchase("Bush")))
+        self.buttons.append(Button("Grass", (button_x, self.plants_y + 52), (button_w, button_h), lambda: self.purchase("Grass")))
+
+        # Animals Section
+        self.animals_title_y = self.plants_y + 80
+        self.animals_y = self.animals_title_y + 24  # Add extra space below the title
+        self.animal_names = ["Antelope", "Zebra", "Bison", "Lion", "Hyena", "Crocodile"]
+        for i, name in enumerate(self.animal_names):
+            self.buttons.append(Button(name, (button_x, self.animals_y + i * 24), (90, button_h), lambda n=name: self.purchase(n)))
+
+        # Jeep Section
+        self.jeep_title_y = self.animals_y + len(self.animal_names) * 24 + 10
+        self.jeep_y = self.jeep_title_y + 24
+        self.buttons.append(Button("Jeep", (button_x, self.jeep_y), (90, button_h), lambda: self.purchase("Jeep")))
+
+    def render(self, surface):
+        # Background
+        pygame.draw.rect(surface, (245, 245, 220), (self.x, self.y, self.width, self.height), border_radius=10)
+        pygame.draw.rect(surface, (218, 165, 32), (self.x, self.y, self.width, self.height), 2, border_radius=10)
+
+        # Section titles
+        surface.blit(self.section_font.render("Plants", True, (0, 100, 0)), (self.x + 8, self.y + 8))
+        surface.blit(self.section_font.render("Animals", True, (139, 69, 19)), (self.x + 8, self.animals_title_y))
+        surface.blit(self.section_font.render("Jeep", True, (60, 60, 200)), (self.x + 8, self.jeep_title_y))
+
+        # Buttons
+        for button in self.buttons:
+            button.font = pygame.font.Font(None, 16)
+            button.render(surface)
+
+        # Show message if any (for 2 seconds)
+        if self.message and time.time() - self.message_time < 2:
+            msg_font = pygame.font.Font(None, 20)
+            msg_surface = msg_font.render(self.message, True, (200, 0, 0))
+            surface.blit(msg_surface, (self.x + 10, self.y + self.height - 30))
+
+    def handleEvent(self, event):
+        for button in self.buttons:
+            button.handleEvent(event)
+
+    def purchase(self, item_name):
+        game = self.ui_manager.get_game_instance()
+        price = PRICES[item_name]
+        if game.economy.money < price:
+            self.message = "Not enough balance!"
+            self.message_time = time.time()
+            return
+
+        # Deduct money
+        game.economy.spend_money(price)
+
+        from ui.vector2 import Vector2
+        import random
+
+        placed_pos = None  # Track where the product is placed
+
+        if item_name in ["Tree", "Bush", "Grass"]:
+            for _ in range(100):
+                x = random.randint(0, game.world.grid_width - 1)
+                y = random.randint(0, game.world.grid_height - 1)
+                cell = game.world.terrain_grid[y][x]
+                pos = Vector2(x * game.world.cell_size, y * game.world.cell_size)
+                if cell == "soil" and not game.world.is_on_road(pos) and not game.world.is_on_water_or_hill(pos):
+                    if item_name == "Tree":
+                        from entities.plant import Tree
+                        plant = Tree(pos)
+                        game.world.entities["Tree"].append(plant)
+                    elif item_name == "Bush":
+                        from entities.plant import Bush
+                        plant = Bush(pos)
+                        game.world.entities["Bush"].append(plant)
+                    elif item_name == "Grass":
+                        # Implement GrassArea if needed
+                        pass
+                    placed_pos = pos
+                    self.message = f"Purchased {item_name}!"
+                    self.message_time = time.time()
+                    break
+            else:
+                self.message = "No valid spot found!"
+                self.message_time = time.time()
+                return
+
+        animal_classes = {
+            "Antelope": "Antelope",
+            "Zebra": "Zebra",
+            "Bison": "Bison",
+            "Lion": "Lion",
+            "Hyena": "Hyena",
+            "Crocodile": "Crocodile"
+        }
+        if item_name in animal_classes:
+            animal_module_map = {
+                "Antelope": "herbivore",
+                "Zebra": "herbivore",
+                "Bison": "herbivore",
+                "Lion": "carnivore",
+                "Hyena": "carnivore",
+                "Crocodile": "carnivore"
+            }
+            module_name = animal_module_map[item_name]
+            module = __import__(f"entities.{module_name}", fromlist=[animal_classes[item_name]])
+            AnimalClass = getattr(module, animal_classes[item_name])
+            for _ in range(100):
+                x = random.randint(0, game.world.grid_width - 1)
+                y = random.randint(0, game.world.grid_height - 1)
+                cell = game.world.terrain_grid[y][x]
+                pos = Vector2(x * game.world.cell_size, y * game.world.cell_size)
+                if cell == "soil" and not game.world.is_on_road(pos) and not game.world.is_on_water_or_hill(pos):
+                    animal = AnimalClass(pos)
+                    game.world.entities[item_name].append(animal)
+                    placed_pos = pos
+                    self.message = f"Purchased {item_name}!"
+                    self.message_time = time.time()
+                    break
+            else:
+                self.message = "No valid spot found!"
+                self.message_time = time.time()
+                return
+
+        if item_name == "Jeep":
+            price = 300  # Set your desired price
+            if game.economy.money < price:
+                self.message = "Not enough balance!"
+                self.message_time = time.time()
+                return
+            game.economy.spend_money(price)
+            # Place new jeep at the road entrance
+            from entities.jeep import Jeep
+            entrance = game.world.road_entrance
+            road_path = sorted(game.world.entities["Road"], key=lambda r: r.position.x)
+            if entrance and road_path:
+                new_jeep = Jeep(entrance, [r.position for r in road_path])
+                game.world.entities["Jeep"].append(new_jeep)
+                game.jeep_count += 1
+                self.message = "Purchased Jeep!"
+                self.message_time = time.time()
+                # Move camera to new jeep
+                game.renderer.camera.moveTo(new_jeep.position)
+            else:
+                self.message = "No road entrance!"
+                self.message_time = time.time()
+            return
+
+        # Move camera to the new product if placed
+        if placed_pos is not None:
+            game.renderer.camera.moveTo(placed_pos)
+
 class UIManager:
     def __init__(self):
         self.components: List[UIComponent] = []
         self.activeMenu: Menu = None
-        self.menuButton = Button("Menu", (10, 10), (100, 50), self.toggleMenu)
+        self.menuButton = Button("Menu", (120, 10), (100, 50), self.toggleMenu)  # Move Menu button right
+        self.shopButton = Button("Shop", (10, 10), (100, 50), self.toggleShop)   # Add Shop button
+        self.shopMenu = None
 
     def addComponent(self, component: UIComponent):
         self.components.append(component)
@@ -81,18 +263,40 @@ class UIManager:
     def hideMenu(self):
         self.activeMenu = None
 
+    def toggleShop(self):
+        if self.shopMenu:
+            self.hideShop()
+        else:
+            self.showShop()
+
+    def showShop(self):
+        self.shopMenu = ShopMenu(self)
+
+    def hideShop(self):
+        self.shopMenu = None
+
     def handleEvent(self, event) -> bool:
         if self.activeMenu:
             self.activeMenu.handleEvent(event)
             return True
         self.menuButton.handleEvent(event)
-        for component in self.components:  # <-- Add this line and the loop below
+        self.shopButton.handleEvent(event)
+        for component in self.components:
             component.handleEvent(event)
+        if self.shopMenu:
+            self.shopMenu.handleEvent(event)
         return False
 
     def render(self, surface):
         self.menuButton.render(surface)
+        self.shopButton.render(surface)
         for component in self.components:
             component.render(surface)
         if self.activeMenu:
             self.activeMenu.render(surface)
+        if self.shopMenu:
+            self.shopMenu.render(surface)
+
+    def get_game_instance(self):
+        import __main__
+        return getattr(__main__, "game", None)

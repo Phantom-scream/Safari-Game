@@ -93,6 +93,7 @@ class Game:
         self.time_of_day = 0.0  # 0.0 to 1.0, where 0.0 is midnight, 0.5 is noon
         self.day_length = 120.0  # seconds for a full day-night cycle (adjust as you like)
         self.is_night = False
+        self.jeep_count = len(self.world.entities["Jeep"])
 
     def zoom_in(self):
         self.renderer.camera.zoom_in()
@@ -124,34 +125,43 @@ class Game:
         self.minimap.render(surface, self.renderer.camera, self.world, self.world.entities)
 
         # --- Day/Night overlay ---
-        # Calculate brightness: 1.0 at noon, 0.4 at midnight
         brightness = 0.4 + 0.6 * (math.cos(self.time_of_day * 2 * math.pi) + 1) / 2
         overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        night_alpha = int((1.0 - brightness) * 180)  # 0 (day) to 180 (night)
+        night_alpha = int((1.0 - brightness) * 180)
         overlay.fill((0, 0, 40, night_alpha))
         surface.blit(overlay, (0, 0))
 
-        # --- Stylish money bar (top-right corner) ---
+        # --- Stylish money bar (top-center) ---
         bar_width, bar_height = 220, 50
         padding = 20
-        x = (self.width - bar_width) // 2  # Center horizontally
+        x = (self.width - bar_width) // 2
         y = padding
 
-        # Draw rounded rectangle background
+        # Money bar
         pygame.draw.rect(surface, (255, 255, 255), (x, y, bar_width, bar_height), border_radius=18)
-        pygame.draw.rect(surface, (218, 165, 32), (x, y, bar_width, bar_height), 3, border_radius=18)  # Gold border
-
-        # Draw coin icon (simple yellow circle)
+        pygame.draw.rect(surface, (218, 165, 32), (x, y, bar_width, bar_height), 3, border_radius=18)
         coin_radius = 16
         coin_x = x + 20
         coin_y = y + bar_height // 2
         pygame.draw.circle(surface, (255, 215, 0), (coin_x, coin_y), coin_radius)
         pygame.draw.circle(surface, (218, 165, 32), (coin_x, coin_y), coin_radius, 3)
-
-        # Draw money text
         font = pygame.font.Font(None, 36)
         money_text = font.render(f"${self.economy.money}", True, (0, 0, 0))
         surface.blit(money_text, (coin_x + coin_radius + 15, y + bar_height // 2 - money_text.get_height() // 2))
+
+        # --- Jeep count bar (under money bar) ---
+        jeep_bar_y = y + bar_height + 10
+        pygame.draw.rect(surface, (255, 255, 255), (x, jeep_bar_y, bar_width, bar_height), border_radius=18)
+        pygame.draw.rect(surface, (60, 60, 200), (x, jeep_bar_y, bar_width, bar_height), 3, border_radius=18)
+        jeep_icon_x = x + 20
+        jeep_icon_y = jeep_bar_y + bar_height // 2
+        # Draw a simple jeep icon (rectangle)
+        pygame.draw.rect(surface, (60, 60, 200), (jeep_icon_x - 10, jeep_icon_y - 10, 32, 20))
+        # Draw wheels
+        pygame.draw.circle(surface, (0, 0, 0), (jeep_icon_x, jeep_icon_y + 10), 5)
+        pygame.draw.circle(surface, (0, 0, 0), (jeep_icon_x + 22, jeep_icon_y + 10), 5)
+        jeep_text = font.render(f"x {self.jeep_count}", True, (0, 0, 0))
+        surface.blit(jeep_text, (jeep_icon_x + 35, jeep_bar_y + bar_height // 2 - jeep_text.get_height() // 2))
 
     def handleEvents(self):
         """Handle input events"""
