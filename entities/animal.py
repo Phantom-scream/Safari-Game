@@ -20,6 +20,7 @@ class Animal(Entity, ABC):
         self.color = (200, 50, 50)
         self.vision_range = 100
         self.known_water_sources = []
+        self.known_plant_sources = []  # Initialize known plant sources
         self.reproduction_timer = time.time() 
         self.is_reproducing = False 
         self.limit = 0 
@@ -29,6 +30,10 @@ class Animal(Entity, ABC):
         self.last_drink_time = 0
         self.drink_cooldown = 2.0  # seconds to wait before drinking again
         self.last_water_position = None  # Add this line
+        self.hungry_level = 100  # New attribute: hunger level (max 100)
+        self.eating_timer = None  # Timer to track eating duration
+        self.age = random.uniform(0, 10)  # Set a random age between 0 and 10 years
+
 
         if type(self).__name__ not in Animal.species_list:
             Animal.species_list.append(type(self).__name__)
@@ -70,6 +75,41 @@ class Animal(Entity, ABC):
                 random.uniform(0, 1200)
             )
 
+
+    def find_food(self, world):
+        current_plant_positions = set()
+        for plant_type in ['Bush', 'Tree']:
+            current_plant_positions.update(plant.position for plant in world.entities.get(plant_type, []))
+        self.known_plant_sources = [
+            pos for pos in self.known_plant_sources if pos in current_plant_positions
+        ]
+        for plant_type in ['Bush', 'Tree']:
+            for plant in world.entities.get(plant_type, []):
+                if self.position.distanceTo(plant.position) < self.vision_range and plant.position not in self.known_plant_sources:
+                    self.known_plant_sources.append(plant.position)
+        if self.known_plant_sources:
+            closest = min(self.known_plant_sources, key=lambda pos: self.position.distanceTo(pos))
+            self.target = closest
+
+
+    def eat_food(self, world):
+        if self.eating_timer is None:
+            for plant_type in ['Bush', 'Tree']:
+                for plant in world.entities.get(plant_type, []):
+                    if self.position.distanceTo(plant.position) < max(self.size, plant.size):
+                        self.eating_timer = time.time()
+                        world.removeEntity(plant)
+                        print(f"{self.entityType} at {self.position} started eating a {plant_type}.")
+                        return
+
+    def update_hunger(self, deltaTime: float):
+        """Decrease hunger level over time."""
+        self.hungry_level -= deltaTime * 5  # Decrease hunger level (adjust rate as needed)
+        if self.hungry_level < 0:
+            self.hungry_level = 0  # Ensure hunger level does not go below 0
+
+
+
     def find_water(self, world):
         current_water_positions = {water.position for water in world.entities.get('WaterBody', [])}
         self.known_water_sources = [
@@ -91,12 +131,17 @@ class Animal(Entity, ABC):
 
     def update(self, deltaTime: float, world: 'GameWorld'):
         deltaTime *= self.SLOW_FACTOR  # Slow down all animal logic
-            
-        print(f"Updating {self.entityType} at {self.position}, thirst: {self.thirst_level}, dead: {self.is_dead}")
+
+        print(f"Updating {self.entityType} at {self.position}, age: {self.age:.2f}, thirst: {self.thirst_level}, dead: {self.is_dead}")
+
 
         if self.is_dead:
             return  # Dead animals do not update
 
+        # Update age
+        self.update_age(deltaTime)
+
+        
         # Handle drinking timer
         if self.drinking_timer is not None:
             if time.time() - self.drinking_timer >= 1:  # <-- Drink for only 1 second
@@ -119,7 +164,6 @@ class Animal(Entity, ABC):
                         self.position.x + random.randint(-100, 100),
                         self.position.y + random.randint(-100, 100)
                     )
-                print(f"{self.entityType} at {self.position} finished drinking water and resumed moving.")
             else:
                 return
 
@@ -173,8 +217,14 @@ class Animal(Entity, ABC):
         self.find_water(world)
         self.reproduce(world)
 
+    def update_age(self, deltaTime: float):
+        """Increase the animal's age over time."""
+        self.age += deltaTime / 60  # Convert deltaTime to years (assuming 1 second = 1 minute in-game)
+        if self.age > 10:  # Example: animals die after 10 years
+            self.mark_as_dead()
+
     def reproduce(self, world):
-        if self.is_dead:  # Dead animals cannot reproduce
+        if self.is_dead or self.age < 3:  # Dead animals or animals younger than 3 years cannot reproduce
             return
 
         current_time = time.time()
@@ -191,7 +241,7 @@ class Animal(Entity, ABC):
         # Look for a partner nearby
         nearby_animals = [
             animal for animal in world.entities.get(species_name, [])
-            if animal != self and not animal.is_reproducing and not animal.is_dead and self.position.distanceTo(animal.position) < self.size * 2
+            if animal != self and not animal.is_reproducing and not animal.is_dead and animal.age >= 3 and self.position.distanceTo(animal.position) < self.size * 2
         ]
 
         if nearby_animals:
@@ -210,14 +260,13 @@ class Animal(Entity, ABC):
                 mid_y + random.uniform(-20, 20)
             )
             new_animal = type(self)(new_position)  # New animals are created without age
+            new_animal.age = 0  # Set the age of the new animal to 0
             world.addEntity(new_animal)
 
-            print(f"{species_name} pair reproduced at {new_position}. Total {species_name}: {len(world.entities[species_name])}")
 
     def mark_as_dead(self):
         """Mark the animal as dead."""
         self.is_dead = True
-        print(f"{self.entityType} at {self.position} died.")
         self.is_dead = True
 
     def render(self, surface: pygame.Surface, camera: 'Camera'):
