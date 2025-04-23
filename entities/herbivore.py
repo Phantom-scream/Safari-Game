@@ -6,6 +6,33 @@ class Herbivore(Animal):
     def __init__(self, position: Vector2, size: float, speed: float):
         super().__init__(position, size, 'Herbivore', speed)
 
+    def update(self, deltaTime: float, world: 'GameWorld'):
+        if self.is_dead:
+            return  # Dead animals do not update
+
+        # Handle eating timer
+        if self.eating_timer is not None:
+            if time.time() - self.eating_timer >= 3:  # Stop eating after 3 seconds
+                self.eating_timer = None
+                self.hungry_level = 100  # Reset hunger level to maximum
+                print(f"{self.entityType} at {self.position} finished eating and resumed moving.")
+            else:
+                return  # Skip other updates while eating
+
+        # Update hunger level
+        self.update_hunger(deltaTime)
+
+        # If hunger level is below 30, prioritize finding food
+        if self.hungry_level < 30:
+            print(f"{self.entityType} is hungry (hunger level: {self.hungry_level}). Searching for food...")
+            self.find_food(world)
+
+        # If near a plant, start eating
+        self.eat_food(world)
+
+        # Continue with normal behavior
+        super().update(deltaTime, world)
+
     def render(self, surface: pygame.Surface, camera: 'Camera'):
         screenPos = camera.worldToScreen(self.position)
         size = self.size * camera.zoom

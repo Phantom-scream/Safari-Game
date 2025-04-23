@@ -20,6 +20,7 @@ class Animal(Entity, ABC):
         self.color = (200, 50, 50)
         self.vision_range = 100
         self.known_water_sources = []
+        self.known_plant_sources = []  # Initialize known plant sources
         self.reproduction_timer = time.time() 
         self.is_reproducing = False 
         self.limit = 0 
@@ -29,6 +30,8 @@ class Animal(Entity, ABC):
         self.last_drink_time = 0
         self.drink_cooldown = 2.0  # seconds to wait before drinking again
         self.last_water_position = None  # Add this line
+        self.hungry_level = 100  # New attribute: hunger level (max 100)
+        self.eating_timer = None  # Timer to track eating duration
 
         if type(self).__name__ not in Animal.species_list:
             Animal.species_list.append(type(self).__name__)
@@ -69,6 +72,46 @@ class Animal(Entity, ABC):
                 random.uniform(0, 1600),
                 random.uniform(0, 1200)
             )
+
+
+    def find_food(self, world):
+        """Find the nearest plant to eat."""
+        # Update known plant sources
+        current_plant_positions = {plant.position for plant in world.entities.get('Plant', [])}
+        self.known_plant_sources = [
+            pos for pos in self.known_plant_sources if pos in current_plant_positions
+        ]
+        for plant in world.entities.get('Plant', []):
+            if self.position.distanceTo(plant.position) < self.vision_range and plant.position not in self.known_plant_sources:
+                self.known_plant_sources.append(plant.position)
+
+        # Set target to the closest known plant source
+        if self.known_plant_sources:
+            closest = min(self.known_plant_sources, key=lambda pos: self.position.distanceTo(pos))
+            self.target = closest
+            print(f"{self.entityType} is heading to plant at {self.target} due to hunger.")
+        else:
+            print(f"{self.entityType} could not find any plants nearby.")
+
+    def eat_food(self, world):
+        """Start eating the plant and reset hunger level."""
+        if self.eating_timer is None:  # Start eating only if not already eating
+            for plant in world.entities.get('Plant', []):
+                if self.position.distanceTo(plant.position) < self.size:  # Check if herbivore is close enough to eat
+                    self.eating_timer = time.time()  # Start the eating timer
+                    world.removeEntity(plant)  # Remove the plant from the world
+                    print(f"{self.entityType} at {self.position} started eating a plant.")
+                    break
+            else:
+                print(f"{self.entityType} is near a plant but could not eat it.")
+
+    def update_hunger(self, deltaTime: float):
+        """Decrease hunger level over time."""
+        self.hungry_level -= deltaTime * 5  # Decrease hunger level (adjust rate as needed)
+        if self.hungry_level < 0:
+            self.hungry_level = 0  # Ensure hunger level does not go below 0
+
+
 
     def find_water(self, world):
         current_water_positions = {water.position for water in world.entities.get('WaterBody', [])}
