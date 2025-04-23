@@ -32,6 +32,8 @@ class Animal(Entity, ABC):
         self.last_water_position = None  # Add this line
         self.hungry_level = 100  # New attribute: hunger level (max 100)
         self.eating_timer = None  # Timer to track eating duration
+        self.age = random.uniform(0, 10)  # Set a random age between 0 and 10 years
+
 
         if type(self).__name__ not in Animal.species_list:
             Animal.species_list.append(type(self).__name__)
@@ -129,11 +131,17 @@ class Animal(Entity, ABC):
 
     def update(self, deltaTime: float, world: 'GameWorld'):
         deltaTime *= self.SLOW_FACTOR  # Slow down all animal logic
-            
+
+        print(f"Updating {self.entityType} at {self.position}, age: {self.age:.2f}, thirst: {self.thirst_level}, dead: {self.is_dead}")
+
 
         if self.is_dead:
             return  # Dead animals do not update
 
+        # Update age
+        self.update_age(deltaTime)
+
+        
         # Handle drinking timer
         if self.drinking_timer is not None:
             if time.time() - self.drinking_timer >= 1:  # <-- Drink for only 1 second
@@ -209,8 +217,14 @@ class Animal(Entity, ABC):
         self.find_water(world)
         self.reproduce(world)
 
+    def update_age(self, deltaTime: float):
+        """Increase the animal's age over time."""
+        self.age += deltaTime / 60  # Convert deltaTime to years (assuming 1 second = 1 minute in-game)
+        if self.age > 10:  # Example: animals die after 10 years
+            self.mark_as_dead()
+
     def reproduce(self, world):
-        if self.is_dead:  # Dead animals cannot reproduce
+        if self.is_dead or self.age < 3:  # Dead animals or animals younger than 3 years cannot reproduce
             return
 
         current_time = time.time()
@@ -227,7 +241,7 @@ class Animal(Entity, ABC):
         # Look for a partner nearby
         nearby_animals = [
             animal for animal in world.entities.get(species_name, [])
-            if animal != self and not animal.is_reproducing and not animal.is_dead and self.position.distanceTo(animal.position) < self.size * 2
+            if animal != self and not animal.is_reproducing and not animal.is_dead and animal.age >= 3 and self.position.distanceTo(animal.position) < self.size * 2
         ]
 
         if nearby_animals:
@@ -246,6 +260,7 @@ class Animal(Entity, ABC):
                 mid_y + random.uniform(-20, 20)
             )
             new_animal = type(self)(new_position)  # New animals are created without age
+            new_animal.age = 0  # Set the age of the new animal to 0
             world.addEntity(new_animal)
 
 
