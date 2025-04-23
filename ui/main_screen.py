@@ -8,10 +8,8 @@ class MainScreen:
         self.show_rules_callback = show_rules_callback
         self.exit_game_callback = exit_game_callback
 
-        # Difficulty selection
         self.selected_difficulty = "easy"
 
-        # Buttons
         self.buttons = [
             Button("Easy", (50, 150), (200, 40), lambda: self.select_difficulty("easy")),
             Button("Medium", (50, 200), (200, 40), lambda: self.select_difficulty("medium")),
@@ -21,7 +19,6 @@ class MainScreen:
             Button("Exit", (50, 460), (200, 50), self.exit_game_callback),
         ]
 
-        # Load an image (placeholder for now)
         self.image = pygame.image.load("ui/haci.png")
         self.image = pygame.transform.scale(self.image, (300, 300))
 
@@ -29,7 +26,6 @@ class MainScreen:
         self.selected_difficulty = difficulty
 
     def start_game(self):
-        # Pass the selected difficulty to the callback
         self.start_game_callback(self.selected_difficulty)
 
     def render(self):
@@ -39,7 +35,6 @@ class MainScreen:
         self.screen.blit(title_surface, (50, 50))
         for button in self.buttons:
             button.render(self.screen)
-        # Highlight selected difficulty
         font = pygame.font.Font(None, 28)
         diff_text = font.render(f"Selected: {self.selected_difficulty.title()}", True, (0, 0, 0))
         self.screen.blit(diff_text, (270, 160))

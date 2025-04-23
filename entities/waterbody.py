@@ -7,7 +7,7 @@ class WaterBody(Entity):
     def __init__(self, position: Vector2, size: float):
         super().__init__(position, size, 'WaterBody')
         self.color = (0, 0, 255)
-        self.connected_cells = [position]  # Initialize with at least the center position
+        self.connected_cells = [position]
         
     def drink(self, amount: float) -> float:
         return amount
