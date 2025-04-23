@@ -30,15 +30,14 @@ class Game:
         self.width = width
         self.height = height
         self.timeManager = TimeManager()
-        self.economy = Economy()  # Starts with 1000 by default
+        self.economy = Economy()  
         self.world = GameWorld(WORLD_WIDTH, WORLD_HEIGHT, self.economy)
         self.renderer = Renderer(WORLD_WIDTH, WORLD_HEIGHT, width, height)
         self.uiManager = UIManager()
-        self.minimap = Minimap(WORLD_WIDTH, WORLD_HEIGHT, width, height)  # Add minimap
+        self.minimap = Minimap(WORLD_WIDTH, WORLD_HEIGHT, width, height) 
         self.running = True
         self.difficulty = difficulty
 
-        # Win/loss thresholds by difficulty
         self.win_conditions = {
             "easy": {
                 "months_required": 3,
@@ -62,9 +61,8 @@ class Game:
                 "min_capital": 2000,
             }
         }
-        self.win_streak = 0  # Number of consecutive months meeting win conditions
-        self.month_timer = 0  # Tracks in-game time for months
-
+        self.win_streak = 0 
+        self.month_timer = 0 
         self.speed_modes = {
             "hour": 1.0,
             "day": 5.0,
@@ -77,8 +75,8 @@ class Game:
         self.world.place_plants()
         self.world.spawn_animals()
 
-        zoom_button_height = 48  # Increased height
-        zoom_button_width = self.minimap.minimap_width // 2  # Increased width (already full minimap width)
+        zoom_button_height = 48  
+        zoom_button_width = self.minimap.minimap_width // 2 
         minimap_x, minimap_y = self.minimap.position
         minimap_w, minimap_h = self.minimap.minimap_width, self.minimap.minimap_height
 
@@ -99,9 +97,9 @@ class Game:
         self.uiManager.addComponent(zoom_in_button)
         self.uiManager.addComponent(zoom_out_button)
 
-        speed_button_width = 60  # You can adjust this width as you like
-        speed_button_height = self.minimap.minimap_height // 3  # 3 buttons fill minimap height
-        speed_button_x = minimap_x - speed_button_width  # Directly left of minimap, no space
+        speed_button_width = 60  
+        speed_button_height = self.minimap.minimap_height // 3 
+        speed_button_x = minimap_x - speed_button_width  
         speed_button_y = minimap_y
 
         def make_speed_button(label, mode, idx):
@@ -120,11 +118,11 @@ class Game:
         self.uiManager.addComponent(self.day_button)
         self.uiManager.addComponent(self.week_button)
 
-        self.time_of_day = 0.0  # 0.0 to 1.0, where 0.0 is midnight, 0.5 is noon
-        self.day_length = 120.0  # seconds for a full day-night cycle (adjust as you like)
+        self.time_of_day = 0.0  
+        self.day_length = 120.0  
         self.is_night = False
         self.jeep_count = len(self.world.entities["Jeep"])
-        self.pending_jeeps = []  # <-- Add this line
+        self.pending_jeeps = []
 
     def zoom_in(self):
         self.renderer.camera.zoom_in()
@@ -142,7 +140,6 @@ class Game:
             speed_factor = self.speed_modes[self.current_speed_mode]
             deltaTime *= speed_factor
 
-            # --- Day/Night cycle update ---
             self.time_of_day += deltaTime / self.day_length
             if self.time_of_day > 1.0:
                 self.time_of_day -= 1.0
@@ -151,7 +148,6 @@ class Game:
             self.world.update(deltaTime)
             self.renderer.handleInput(deltaTime)
 
-            # --- Deploy all jeeps (existing + pending) if all jeeps are at entrance ---
             if self.all_jeeps_at_entrance():
                 entrance = self.world.road_entrance
                 spacing = 50
@@ -161,22 +157,19 @@ class Game:
                     jeep.position = Vector2(entrance.x + offset, entrance.y)
                     jeep.current_index = 0
                     jeep.state = "to_exit"
-                    jeep.passengers = [Tourist(f"Tourist {j+1}") for j in range(4)]  # Reset passengers
+                    jeep.passengers = [Tourist(f"Tourist {j+1}") for j in range(4)]  
                 self.world.entities["Jeep"] = all_jeeps
                 self.pending_jeeps.clear()
 
-            # --- WIN/LOSS CHECKS ---
             self.month_timer += deltaTime
-            if self.month_timer >= 30:  # 30 in-game days = 1 month
+            if self.month_timer >= 30:  
                 self.month_timer -= 30
 
-                # Count entities
                 num_visitors = len(self.world.entities.get("Tourist", []))
                 num_herbivores = sum(1 for a in self.world.entities.get("Herbivore", []))
                 num_carnivores = sum(1 for a in self.world.entities.get("Carnivore", []))
                 capital = self.economy.money
 
-                # Get thresholds
                 cond = self.win_conditions[self.difficulty]
                 meets = (
                     num_visitors >= cond["min_visitors"] and
@@ -194,7 +187,6 @@ class Game:
                     show_win(pygame.display.get_surface())
                     return
 
-            # --- LOSS CHECKS ---
             if self.economy.money <= 0:
                 self.running = False
                 show_game_over(pygame.display.get_surface(), "You went bankrupt!")
@@ -208,25 +200,22 @@ class Game:
                 return
 
     def render(self, surface):
-        surface.fill((238, 214, 175))  # Desert background
+        surface.fill((238, 214, 175)) 
         self.renderer.render(surface, self)
         self.uiManager.render(surface)
         self.minimap.render(surface, self.renderer.camera, self.world, self.world.entities)
 
-        # --- Day/Night overlay ---
         brightness = 0.4 + 0.6 * (math.cos(self.time_of_day * 2 * math.pi) + 1) / 2
         overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         night_alpha = int((1.0 - brightness) * 180)
         overlay.fill((0, 0, 40, night_alpha))
         surface.blit(overlay, (0, 0))
 
-        # --- Stylish money bar (top-center) ---
-        bar_width, bar_height = 140, 32  # Smaller bars
+        bar_width, bar_height = 140, 32 
         padding = 10
         x = (self.width - bar_width) // 2
         y = padding
 
-        # Money bar
         pygame.draw.rect(surface, (255, 255, 255), (x, y, bar_width, bar_height), border_radius=12)
         pygame.draw.rect(surface, (218, 165, 32), (x, y, bar_width, bar_height), 2, border_radius=12)
         coin_radius = 10
@@ -238,14 +227,12 @@ class Game:
         money_text = font.render(f"${self.economy.money}", True, (0, 0, 0))
         surface.blit(money_text, (coin_x + coin_radius + 8, y + bar_height // 2 - money_text.get_height() // 2))
 
-        # --- Jeep count bar (under money bar) ---
         jeep_bar_y = y + bar_height + 6
         pygame.draw.rect(surface, (255, 255, 255), (x, jeep_bar_y, bar_width, bar_height), border_radius=12)
         pygame.draw.rect(surface, (60, 60, 200), (x, jeep_bar_y, bar_width, bar_height), 2, border_radius=12)
         jeep_icon_x = x + 12
         jeep_icon_y = jeep_bar_y + bar_height // 2
         pygame.draw.rect(surface, (60, 60, 200), (jeep_icon_x - 6, jeep_icon_y - 7, 20, 14))
-        # Draw wheels
         pygame.draw.circle(surface, (0, 0, 0), (jeep_icon_x, jeep_icon_y + 7), 3)
         pygame.draw.circle(surface, (0, 0, 0), (jeep_icon_x + 14, jeep_icon_y + 7), 3)
         jeep_text = font.render(f"x {self.jeep_count}", True, (0, 0, 0))
@@ -260,7 +247,7 @@ class Game:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                self.minimap.handle_click(pygame.mouse.get_pos(), self.renderer.camera)  # Handle minimap clicks
+                self.minimap.handle_click(pygame.mouse.get_pos(), self.renderer.camera)  
             if self.uiManager.handleEvent(event):
                 return
 
@@ -282,7 +269,7 @@ class Game:
                         and not self.is_on_road(pos)
                         and not self.is_on_water_or_hill(pos)
                         and not self.is_near_water(x, y, radius=2)
-                        and not self.is_near_road(x, y, radius=5)  # <-- Even further from roads!
+                        and not self.is_near_road(x, y, radius=5)  
                         and (x, y) not in placed_positions
                     ):
                         plant = PlantClass(pos)
@@ -337,7 +324,6 @@ def show_win(screen):
     running = True
     font = pygame.font.Font(None, 72)
     small_font = pygame.font.Font(None, 36)
-    # Create buttons
     menu_button = Button("Main Menu", (screen.get_width() // 2 - 120, 350), (110, 50), lambda: "menu")
     exit_button = Button("Exit", (screen.get_width() // 2 + 10, 350), (110, 50), lambda: "exit")
     buttons = [menu_button, exit_button]
@@ -371,7 +357,6 @@ def show_game_over(screen, reason="Game Over"):
     running = True
     font = pygame.font.Font(None, 72)
     small_font = pygame.font.Font(None, 36)
-    # Create buttons
     menu_button = Button("Main Menu", (screen.get_width() // 2 - 120, 350), (110, 50), lambda: "menu")
     exit_button = Button("Exit", (screen.get_width() // 2 + 10, 350), (110, 50), lambda: "exit")
     buttons = [menu_button, exit_button]
@@ -412,7 +397,7 @@ class ShopMenu:
             road_path = sorted(self.game.world.entities["Road"], key=lambda r: r.position.x)
             if entrance and road_path:
                 new_jeep = Jeep(entrance, [r.position for r in road_path])
-                self.game.pending_jeeps.append(new_jeep)  # <-- Add to pending, not to world.entities
+                self.game.pending_jeeps.append(new_jeep) 
                 self.game.jeep_count += 1
                 self.message = "Purchased Jeep! Will join next tour."
                 self.message_time = time.time()
@@ -423,16 +408,14 @@ class ShopMenu:
 
 
 if __name__ == "__main__":
-    # Initialize Pygame
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     clock = pygame.time.Clock()
 
-    # Main screen
     def start_game(difficulty="easy"):
         global main_screen_active, game
         main_screen_active = False
-        game = Game(SCREEN_WIDTH, SCREEN_HEIGHT, difficulty)  # Pass difficulty to Game
+        game = Game(SCREEN_WIDTH, SCREEN_HEIGHT, difficulty) 
 
     def exit_game():
         pygame.quit()
@@ -441,7 +424,6 @@ if __name__ == "__main__":
     main_screen = MainScreen(screen, start_game, lambda: show_rules(screen), exit_game)
 
     while True:
-        # Main menu loop
         main_screen_active = True
         while main_screen_active:
             for event in pygame.event.get():
@@ -454,7 +436,6 @@ if __name__ == "__main__":
             pygame.display.flip()
             clock.tick(60)
 
-        # Game loop
         while game.running:
             game.handleEvents()
             deltaTime = clock.tick(60) / 1000.0
@@ -462,7 +443,6 @@ if __name__ == "__main__":
             game.render(screen)
             pygame.display.flip()
 
-        # --- End screen logic ---
         result = None
         if game.win_streak >= game.win_conditions[game.difficulty]["months_required"]:
             result = show_win(screen)
@@ -470,8 +450,8 @@ if __name__ == "__main__":
             result = show_game_over(screen, "Game Over!")
 
         if result == "menu":
-            continue  # Restart the main menu loop
+            continue  
         else:
-            break  # Exit the program
+            break 
 
     pygame.quit()

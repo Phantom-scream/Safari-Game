@@ -36,7 +36,6 @@ class Camera:
     def handleInput(self, deltaTime: float):
         keys = pygame.key.get_pressed()
         moveSpeed = 200 * deltaTime
-        # Adjust these values to prevent showing areas outside the world
         min_x = self.viewportWidth / 2
         min_y = self.viewportHeight / 2
         max_x = self.worldWidth - self.viewportWidth 
@@ -53,8 +52,8 @@ class Camera:
 
 
     def zoom_in(self, factor=1.1):
-        self.zoom = min(self.zoom * factor, 4.0)  # Max zoom in
+        self.zoom = min(self.zoom * factor, 4.0) 
 
     def zoom_out(self, factor=1.1):
-        self.zoom = max(self.zoom / factor, 0.25)  # Max zoom out
+        self.zoom = max(self.zoom / factor, 0.25)  
 

@@ -12,15 +12,15 @@ from entities.entity import Entity
 from gamelogic.settings import NUM_ANIMALS, NUM_WATER_SOURCES, NUM_PLANTS, NUM_POACHERS
 from ui.vector2 import Vector2
 import random
-from entities.road import Road  # 1. Import the Road class
-from entities.jeep import Jeep  # Add this import
+from entities.road import Road
+from entities.jeep import Jeep
 from entities.plant import Bush, Tree
 
 class GameWorld:
     def __init__(self, width, height, economy=None):
         self.width = width
         self.height = height
-        self.cell_size = 20  # Define cell_size here, not in settings.py
+        self.cell_size = 20
         self.grid_width = math.ceil(width / self.cell_size) + 2
         self.grid_height = math.ceil(height / self.cell_size) + 2
         self.terrain_grid = [[None for _ in range(self.grid_width)] for _ in range(self.grid_height)]
@@ -33,20 +33,19 @@ class GameWorld:
             'Hyena': [Hyena(Vector2(random.randint(0, width), random.randint(0, height))) for _ in range(Hyena.get_number())],
             'Crocodile': [Crocodile(Vector2(random.randint(0, width), random.randint(0, height))) for _ in range(Crocodile.get_number())],
             'WaterBody': [],
-            'Bush': [],         # Add Bush list
-            'Tree': [],         # Add Tree list
+            'Bush': [],
+            'Tree': [],
             'Poacher' : [Poacher(Vector2(random.randint(0, width), random.randint(0, height)), 20, 1.2) for _ in range(NUM_POACHERS)],
             "Road": [],
-            "Jeep": [],  # Add Jeep list to entities
+            "Jeep": [],
             "Herbivore": [],
             "Carnivore": []
         }
-        self.add_road()  # Call after initializing entities
-        self.generate_terrain()  # Move terrain generation after road creation
-        self.place_plants()  # <-- Add this line after terrain generation
-        self.economy = economy  # Store reference to Economy
+        self.add_road()
+        self.generate_terrain()
+        self.place_plants()
+        self.economy = economy
 
-        # Now generate water bodies, skipping road positions
         for _ in range(NUM_WATER_SOURCES):
             while True:
                 pos = Vector2(random.randint(0, width), self.height // 2 + random.randint(-height//2, height//2))
@@ -54,38 +53,33 @@ class GameWorld:
                     self.entities['WaterBody'].append(WaterBody(pos, 20))
                     break
 
-        # Find the road path from left to right (sorted by x)
         road_path = sorted(self.entities["Road"], key=lambda r: r.position.x)
         road_positions = [r.position for r in road_path]
 
-        # 4. Define entrance and exit for the road
         self.road_entrance = road_positions[0] if road_positions else None
         self.road_exit = road_positions[-1] if road_positions else None
 
-        # Create a Jeep at the entrance (leftmost road tile) with 4 tourists
         if road_positions:
             jeep = Jeep(self.road_entrance, road_positions)
             self.entities["Jeep"].append(jeep)
 
     def is_on_road(self, position: Vector2) -> bool:
-        # Check if the position is close to any road tile
         for road in self.entities["Road"]:
             if abs(position.x - road.position.x) < self.cell_size and abs(position.y - road.position.y) < self.cell_size:
                 return True
         return False
 
     def generate_terrain(self):
-        scale = 15.0  # Controls "zoom" of the noise
+        scale = 15.0
         for y in range(self.grid_height):
             for x in range(self.grid_width):
                 n = self.simplex.noise2(x / scale, y / scale)
                 world_x = x * self.cell_size
                 world_y = y * self.cell_size
                 if n < -0.6:
-                    # Place a WaterBody instance in the grid
                     self.terrain_grid[y][x] = WaterBody(Vector2(world_x, world_y), self.cell_size)
                 elif n < 0.5:
-                    self.terrain_grid[y][x] = "soil"  # Changed from "grass" to "soil"
+                    self.terrain_grid[y][x] = "soil"
                 else:
                     self.terrain_grid[y][x] = "hill"
 
@@ -112,15 +106,9 @@ class GameWorld:
         for entity_list in self.entities.values():
             for entity in entity_list:
                 entity.update(deltaTime, self)
-        # for jeep in self.entities.get("Jeep", []):
-        #     # Check if jeep has reached the end of the road
-        #     if hasattr(self, "road_exit") and jeep.position == self.road_exit:
-        #         if self.economy:
-        #             self.economy.add_money(100)  # Add money when jeep completes tour
 
     def add_road(self):
-        """Generate a single wide road from left to right, only in the central 50% of the map height."""
-        road_width = self.cell_size * 5  # Make the road 5 times wider than before
+        road_width = self.cell_size * 5
         road_x = 0
         min_y = int(self.height * 0.25)
         max_y = int(self.height * 0.75)
@@ -128,7 +116,6 @@ class GameWorld:
         num_cells = self.width // self.cell_size
 
         for i in range(num_cells):
-            # Place one wide road object per column
             road_pos = Vector2(road_x, road_y - road_width // 2)
             self.entities["Road"].append(Road(road_pos, road_width))
             road_x += self.cell_size
@@ -161,7 +148,7 @@ class GameWorld:
                         and not self.is_on_road(pos)
                         and not self.is_on_water_or_hill(pos)
                         and not self.is_near_water(x, y, radius=2)
-                        and not self.is_near_road(x, y, radius=2)  # <-- Add this line
+                        and not self.is_near_road(x, y, radius=2)
                         and (x, y) not in placed_positions
                     ):
                         plant = PlantClass(pos)
@@ -173,7 +160,6 @@ class GameWorld:
     def generate_grassy_areas(self, num_patches=8, min_size=10, max_size=30):
         for _ in range(num_patches):
             patch_size = random.randint(min_size, max_size)
-            # Start at a random soil cell not near a road
             tries = 0
             while tries < 100:
                 x = random.randint(0, self.grid_width - 1)
@@ -186,14 +172,13 @@ class GameWorld:
                     break
                 tries += 1
             else:
-                continue  # Couldn't find a good start, skip this patch
+                continue
 
             cells = set()
             cells.add((x, y))
             self.terrain_grid[y][x] = "grass"
             for _ in range(patch_size):
                 cx, cy = random.choice(list(cells))
-                # Randomly move in one direction
                 nx = min(max(cx + random.choice([-1, 0, 1]), 0), self.grid_width - 1)
                 ny = min(max(cy + random.choice([-1, 0, 1]), 0), self.grid_height - 1)
                 if (
@@ -204,7 +189,6 @@ class GameWorld:
                     self.terrain_grid[ny][nx] = "grass"
                     cells.add((nx, ny))
 
-    # Add this to your GameWorld class
     def is_near_road(self, x, y, radius=2):
         for dy in range(-radius, radius + 1):
             for dx in range(-radius, radius + 1):
@@ -226,42 +210,36 @@ class GameWorld:
         return False
 
     def spawn_animals(self):
-        # Spawn Bison
         for _ in range(Bison.get_number()):
             pos = Vector2(random.randint(0, self.width), random.randint(0, self.height))
             bison = Bison(pos)
             self.entities["Bison"].append(bison)
             self.entities["Herbivore"].append(bison)
 
-        # Spawn Zebra
         for _ in range(Zebra.get_number()):
             pos = Vector2(random.randint(0, self.width), random.randint(0, self.height))
             zebra = Zebra(pos)
             self.entities["Zebra"].append(zebra)
             self.entities["Herbivore"].append(zebra)
 
-        # Spawn Antelope
         for _ in range(Antelope.get_number()):
             pos = Vector2(random.randint(0, self.width), random.randint(0, self.height))
             antelope = Antelope(pos)
             self.entities["Antelope"].append(antelope)
             self.entities["Herbivore"].append(antelope)
 
-        # Spawn Lion
         for _ in range(Lion.get_number()):
             pos = Vector2(random.randint(0, self.width), random.randint(0, self.height))
             lion = Lion(pos)
             self.entities["Lion"].append(lion)
             self.entities["Carnivore"].append(lion)
 
-        # Spawn Hyena
         for _ in range(Hyena.get_number()):
             pos = Vector2(random.randint(0, self.width), random.randint(0, self.height))
             hyena = Hyena(pos)
             self.entities["Hyena"].append(hyena)
             self.entities["Carnivore"].append(hyena)
 
-        # Spawn Crocodile
         for _ in range(Crocodile.get_number()):
             pos = Vector2(random.randint(0, self.width), random.randint(0, self.height))
             croc = Crocodile(pos)

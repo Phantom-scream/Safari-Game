@@ -65,7 +65,7 @@ class Menu:
         ]
 
     def render(self, surface):
-        pygame.draw.rect(surface, (50, 50, 50), (250, 150, 300, 250))  # Menu background
+        pygame.draw.rect(surface, (50, 50, 50), (250, 150, 300, 250)) 
         for button in self.buttons:
             button.render(surface)
 
@@ -90,7 +90,6 @@ class ShopMenu:
         self.message = ""
         self.message_time = 0
 
-        # Plants Section
         self.plants_y = self.y + 30
         button_w, button_h = 70, 22
         button_x = self.x + 15
@@ -98,34 +97,28 @@ class ShopMenu:
         self.buttons.append(Button("Bush", (button_x, self.plants_y + 26), (button_w, button_h), lambda: self.purchase("Bush")))
         self.buttons.append(Button("Grass", (button_x, self.plants_y + 52), (button_w, button_h), lambda: self.purchase("Grass")))
 
-        # Animals Section
         self.animals_title_y = self.plants_y + 80
-        self.animals_y = self.animals_title_y + 24  # Add extra space below the title
+        self.animals_y = self.animals_title_y + 24  
         self.animal_names = ["Antelope", "Zebra", "Bison", "Lion", "Hyena", "Crocodile"]
         for i, name in enumerate(self.animal_names):
             self.buttons.append(Button(name, (button_x, self.animals_y + i * 24), (90, button_h), lambda n=name: self.purchase(n)))
 
-        # Jeep Section
         self.jeep_title_y = self.animals_y + len(self.animal_names) * 24 + 10
         self.jeep_y = self.jeep_title_y + 24
         self.buttons.append(Button("Jeep", (button_x, self.jeep_y), (90, button_h), lambda: self.purchase("Jeep")))
 
     def render(self, surface):
-        # Background
         pygame.draw.rect(surface, (245, 245, 220), (self.x, self.y, self.width, self.height), border_radius=10)
         pygame.draw.rect(surface, (218, 165, 32), (self.x, self.y, self.width, self.height), 2, border_radius=10)
 
-        # Section titles
         surface.blit(self.section_font.render("Plants", True, (0, 100, 0)), (self.x + 8, self.y + 8))
         surface.blit(self.section_font.render("Animals", True, (139, 69, 19)), (self.x + 8, self.animals_title_y))
         surface.blit(self.section_font.render("Jeep", True, (60, 60, 200)), (self.x + 8, self.jeep_title_y))
 
-        # Buttons
         for button in self.buttons:
             button.font = pygame.font.Font(None, 16)
             button.render(surface)
 
-        # Show message if any (for 2 seconds)
         if self.message and time.time() - self.message_time < 2:
             msg_font = pygame.font.Font(None, 20)
             msg_surface = msg_font.render(self.message, True, (200, 0, 0))
@@ -142,7 +135,7 @@ class ShopMenu:
         from ui.vector2 import Vector2
         import random
 
-        placed_pos = None  # Track where the product is placed
+        placed_pos = None  
 
         if item_name == "Jeep":
             entrance = game.world.road_entrance
@@ -155,7 +148,6 @@ class ShopMenu:
                 self.message = "Not enough balance!"
                 self.message_time = time.time()
                 return
-            # Deduct money only after all checks pass
             game.economy.spend_money(price)
             spacing = 50
             num_jeeps = len(game.world.entities["Jeep"])
@@ -173,7 +165,6 @@ class ShopMenu:
             game.renderer.camera.moveTo(new_jeep.position)
             return
 
-        # For all other items, keep the original logic:
         if game.economy.money < price:
             self.message = "Not enough balance!"
             self.message_time = time.time()
@@ -196,7 +187,6 @@ class ShopMenu:
                         plant = Bush(pos)
                         game.world.entities["Bush"].append(plant)
                     elif item_name == "Grass":
-                        # Implement GrassArea if needed
                         pass
                     placed_pos = pos
                     self.message = f"Purchased {item_name}!"
@@ -319,11 +309,9 @@ class UIManager:
         if self.shopMenu:
             self.shopMenu.render(surface)
         if self.paused:
-            # Draw Continue button overlay
             overlay = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 120))
             surface.blit(overlay, (0, 0))
-            # Draw Continue button in the center
             continue_w, continue_h = 200, 60
             screen_w, screen_h = surface.get_size()
             continue_x = (screen_w - continue_w) // 2
