@@ -1,19 +1,23 @@
 import pygame
+import time
 from entities.animal import Animal
 from ui.vector2 import Vector2
 
 class Herbivore(Animal):
     def __init__(self, position: Vector2, size: float, speed: float):
         super().__init__(position, size, 'Herbivore', speed)
+        self.eating_elapsed = 0
 
     def update(self, deltaTime: float, world: 'GameWorld'):
         if self.is_dead:
             return  # Dead animals do not update
 
-        # Handle eating timer
+        # Eating logic using deltaTime
         if self.eating_timer is not None:
-            if time.time() - self.eating_timer >= 3:  # Stop eating after 3 seconds
+            self.eating_elapsed += deltaTime
+            if self.eating_elapsed >= 3:  # Eat for 3 simulated seconds
                 self.eating_timer = None
+                self.eating_elapsed = 0
                 self.hungry_level = 100  # Reset hunger level to maximum
                 print(f"{self.entityType} at {self.position} finished eating and resumed moving.")
             else:
@@ -32,6 +36,17 @@ class Herbivore(Animal):
 
         # Continue with normal behavior
         super().update(deltaTime, world)
+
+    def eat_food(self, world):
+        if self.eating_timer is None:
+            for plant_type in ['Bush', 'Tree']:
+                for plant in world.entities.get(plant_type, []):
+                    if self.position.distanceTo(plant.position) < self.size:
+                        self.eating_timer = True
+                        self.eating_elapsed = 0
+                        world.removeEntity(plant)
+                        print(f"{self.entityType} ate a {plant_type} at {plant.position}.")
+                        return
 
     def render(self, surface: pygame.Surface, camera: 'Camera'):
         screenPos = camera.worldToScreen(self.position)

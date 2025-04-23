@@ -75,35 +75,30 @@ class Animal(Entity, ABC):
 
 
     def find_food(self, world):
-        """Find the nearest plant to eat."""
-        # Update known plant sources
-        current_plant_positions = {plant.position for plant in world.entities.get('Plant', [])}
+        current_plant_positions = set()
+        for plant_type in ['Bush', 'Tree']:
+            current_plant_positions.update(plant.position for plant in world.entities.get(plant_type, []))
         self.known_plant_sources = [
             pos for pos in self.known_plant_sources if pos in current_plant_positions
         ]
-        for plant in world.entities.get('Plant', []):
-            if self.position.distanceTo(plant.position) < self.vision_range and plant.position not in self.known_plant_sources:
-                self.known_plant_sources.append(plant.position)
-
-        # Set target to the closest known plant source
+        for plant_type in ['Bush', 'Tree']:
+            for plant in world.entities.get(plant_type, []):
+                if self.position.distanceTo(plant.position) < self.vision_range and plant.position not in self.known_plant_sources:
+                    self.known_plant_sources.append(plant.position)
         if self.known_plant_sources:
             closest = min(self.known_plant_sources, key=lambda pos: self.position.distanceTo(pos))
             self.target = closest
-            print(f"{self.entityType} is heading to plant at {self.target} due to hunger.")
-        else:
-            print(f"{self.entityType} could not find any plants nearby.")
+
 
     def eat_food(self, world):
-        """Start eating the plant and reset hunger level."""
-        if self.eating_timer is None:  # Start eating only if not already eating
-            for plant in world.entities.get('Plant', []):
-                if self.position.distanceTo(plant.position) < self.size:  # Check if herbivore is close enough to eat
-                    self.eating_timer = time.time()  # Start the eating timer
-                    world.removeEntity(plant)  # Remove the plant from the world
-                    print(f"{self.entityType} at {self.position} started eating a plant.")
-                    break
-            else:
-                print(f"{self.entityType} is near a plant but could not eat it.")
+        if self.eating_timer is None:
+            for plant_type in ['Bush', 'Tree']:
+                for plant in world.entities.get(plant_type, []):
+                    if self.position.distanceTo(plant.position) < max(self.size, plant.size):
+                        self.eating_timer = time.time()
+                        world.removeEntity(plant)
+                        print(f"{self.entityType} at {self.position} started eating a {plant_type}.")
+                        return
 
     def update_hunger(self, deltaTime: float):
         """Decrease hunger level over time."""
@@ -135,7 +130,6 @@ class Animal(Entity, ABC):
     def update(self, deltaTime: float, world: 'GameWorld'):
         deltaTime *= self.SLOW_FACTOR  # Slow down all animal logic
             
-        print(f"Updating {self.entityType} at {self.position}, thirst: {self.thirst_level}, dead: {self.is_dead}")
 
         if self.is_dead:
             return  # Dead animals do not update
@@ -162,7 +156,6 @@ class Animal(Entity, ABC):
                         self.position.x + random.randint(-100, 100),
                         self.position.y + random.randint(-100, 100)
                     )
-                print(f"{self.entityType} at {self.position} finished drinking water and resumed moving.")
             else:
                 return
 
@@ -255,12 +248,10 @@ class Animal(Entity, ABC):
             new_animal = type(self)(new_position)  # New animals are created without age
             world.addEntity(new_animal)
 
-            print(f"{species_name} pair reproduced at {new_position}. Total {species_name}: {len(world.entities[species_name])}")
 
     def mark_as_dead(self):
         """Mark the animal as dead."""
         self.is_dead = True
-        print(f"{self.entityType} at {self.position} died.")
         self.is_dead = True
 
     def render(self, surface: pygame.Surface, camera: 'Camera'):
