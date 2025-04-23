@@ -5,6 +5,10 @@ import random
 import math
 import time
 from entities.entity import Entity
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from gamelogic.game_world import GameWorld
+    from ui.camera import Camera
 
 class Animal(Entity, ABC):
     reproduction_lock = None  

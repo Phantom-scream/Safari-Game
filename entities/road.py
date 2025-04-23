@@ -2,10 +2,10 @@ import pygame
 from ui.vector2 import Vector2
 from entities.entity import Entity
 from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
+    from gamelogic.game_world import GameWorld
     from ui.camera import Camera
-    # Add GameWorld type hint if needed in update, though it's unused now
-    # from gamelogic.game_world import GameWorld
 
 class Road(Entity):
     """Represents a piece of road terrain."""

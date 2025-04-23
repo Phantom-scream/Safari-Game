@@ -2,6 +2,10 @@ import pygame
 import time
 from entities.animal import Animal
 from ui.vector2 import Vector2
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from gamelogic.game_world import GameWorld
+    from ui.camera import Camera
 
 class Herbivore(Animal):
     def __init__(self, position: Vector2, size: float, speed: float):

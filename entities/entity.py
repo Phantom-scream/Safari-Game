@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from ui.vector2 import Vector2
 import pygame
 
+
 class Entity(ABC):
     def __init__(self, position: Vector2, size: float, entityType: str):
         self.position = position
