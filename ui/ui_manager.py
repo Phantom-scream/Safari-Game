@@ -2,6 +2,8 @@ import pygame
 from typing import List
 import time
 
+from entities.tourist import Tourist
+
 PRICES = {
     "Tree": 150,
     "Bush": 100,
@@ -25,12 +27,12 @@ class UIComponent:
 
 
 class Button(UIComponent):
-    def __init__(self, text, position, size, callback):
+    def __init__(self, text, position, size, callback, font_size=16):
         self.text = text
         self.position = position
         self.size = size
         self.callback = callback
-        self.font = pygame.font.Font(None, 36)
+        self.font = pygame.font.Font(None, font_size)
         self.color = (200, 200, 200)
         self.hover_color = (150, 150, 150)
 
@@ -210,23 +212,30 @@ class ShopMenu:
                 return
 
         if item_name == "Jeep":
-            price = 300  # Set your desired price
+            price = PRICES["Jeep"]
             if game.economy.money < price:
                 self.message = "Not enough balance!"
                 self.message_time = time.time()
                 return
             game.economy.spend_money(price)
-            # Place new jeep at the road entrance
             from entities.jeep import Jeep
             entrance = game.world.road_entrance
             road_path = sorted(game.world.entities["Road"], key=lambda r: r.position.x)
             if entrance and road_path:
-                new_jeep = Jeep(entrance, [r.position for r in road_path])
+                # Place the new jeep at the entrance, spaced from others
+                spacing = 50
+                num_jeeps = len(game.world.entities["Jeep"])
+                offset = num_jeeps * spacing
+                jeep_pos = Vector2(entrance.x + offset, entrance.y)
+                new_jeep = Jeep(jeep_pos, [r.position for r in road_path])
+                new_jeep.current_index = 0
+                new_jeep.state = "to_exit"
+                new_jeep.passengers = [Tourist(f"Tourist {j+1}") for j in range(4)]
                 game.world.entities["Jeep"].append(new_jeep)
                 game.jeep_count += 1
-                self.message = "Purchased Jeep!"
+                self.message = "Purchased Jeep! It's on the road."
                 self.message_time = time.time()
-                # Move camera to new jeep
+                # Optionally move camera to new jeep
                 game.renderer.camera.moveTo(new_jeep.position)
             else:
                 self.message = "No road entrance!"
@@ -241,8 +250,10 @@ class UIManager:
     def __init__(self):
         self.components: List[UIComponent] = []
         self.activeMenu: Menu = None
-        self.menuButton = Button("Menu", (120, 10), (100, 50), self.toggleMenu)  # Move Menu button right
-        self.shopButton = Button("Shop", (10, 10), (100, 50), self.toggleShop)   # Add Shop button
+        # Smaller buttons, no space between
+        button_w, button_h = 90, 40
+        self.shopButton = Button("Shop", (10, 10), (button_w, button_h), self.toggleShop, font_size=20)
+        self.menuButton = Button("Menu", (10 + button_w, 10), (button_w, button_h), self.toggleMenu, font_size=20)
         self.shopMenu = None
 
     def addComponent(self, component: UIComponent):
