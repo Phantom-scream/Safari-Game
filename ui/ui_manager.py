@@ -134,18 +134,47 @@ class ShopMenu:
     def purchase(self, item_name):
         game = self.ui_manager.get_game_instance()
         price = PRICES[item_name]
-        if game.economy.money < price:
-            self.message = "Not enough balance!"
-            self.message_time = time.time()
-            return
-
-        # Deduct money
-        game.economy.spend_money(price)
 
         from ui.vector2 import Vector2
         import random
 
         placed_pos = None  # Track where the product is placed
+
+        if item_name == "Jeep":
+            entrance = game.world.road_entrance
+            road_path = sorted(game.world.entities["Road"], key=lambda r: r.position.x)
+            if not (entrance and road_path):
+                self.message = "No road entrance!"
+                self.message_time = time.time()
+                return
+            if game.economy.money < price:
+                self.message = "Not enough balance!"
+                self.message_time = time.time()
+                return
+            # Deduct money only after all checks pass
+            game.economy.spend_money(price)
+            spacing = 50
+            num_jeeps = len(game.world.entities["Jeep"])
+            offset = num_jeeps * spacing
+            jeep_pos = Vector2(entrance.x + offset, entrance.y)
+            from entities.jeep import Jeep
+            new_jeep = Jeep(jeep_pos, [r.position for r in road_path])
+            new_jeep.current_index = 0
+            new_jeep.state = "to_exit"
+            new_jeep.passengers = [Tourist(f"Tourist {j+1}") for j in range(4)]
+            game.world.entities["Jeep"].append(new_jeep)
+            game.jeep_count += 1
+            self.message = "Purchased Jeep! It's on the road."
+            self.message_time = time.time()
+            game.renderer.camera.moveTo(new_jeep.position)
+            return
+
+        # For all other items, keep the original logic:
+        if game.economy.money < price:
+            self.message = "Not enough balance!"
+            self.message_time = time.time()
+            return
+        game.economy.spend_money(price)
 
         if item_name in ["Tree", "Bush", "Grass"]:
             for _ in range(100):
@@ -210,37 +239,6 @@ class ShopMenu:
                 self.message = "No valid spot found!"
                 self.message_time = time.time()
                 return
-
-        if item_name == "Jeep":
-            price = PRICES["Jeep"]
-            if game.economy.money < price:
-                self.message = "Not enough balance!"
-                self.message_time = time.time()
-                return
-            game.economy.spend_money(price)
-            from entities.jeep import Jeep
-            entrance = game.world.road_entrance
-            road_path = sorted(game.world.entities["Road"], key=lambda r: r.position.x)
-            if entrance and road_path:
-                # Place the new jeep at the entrance, spaced from others
-                spacing = 50
-                num_jeeps = len(game.world.entities["Jeep"])
-                offset = num_jeeps * spacing
-                jeep_pos = Vector2(entrance.x + offset, entrance.y)
-                new_jeep = Jeep(jeep_pos, [r.position for r in road_path])
-                new_jeep.current_index = 0
-                new_jeep.state = "to_exit"
-                new_jeep.passengers = [Tourist(f"Tourist {j+1}") for j in range(4)]
-                game.world.entities["Jeep"].append(new_jeep)
-                game.jeep_count += 1
-                self.message = "Purchased Jeep! It's on the road."
-                self.message_time = time.time()
-                # Optionally move camera to new jeep
-                game.renderer.camera.moveTo(new_jeep.position)
-            else:
-                self.message = "No road entrance!"
-                self.message_time = time.time()
-            return
 
         # Move camera to the new product if placed
         if placed_pos is not None:
