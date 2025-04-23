@@ -27,13 +27,37 @@ class Plant(Entity, ABC):  # Inherit from ABC
 
 # --- New plant types ---
 
-class Bush(Plant):
-    def __init__(self, position: Vector2, size: float = 15, nutritionalValue: float = 60):
-        super().__init__(position, size, nutritionalValue)
-        self.color = (34, 139, 34)  # Forest green
+class Bush(Entity):
+    def __init__(self, position: Vector2):
+        super().__init__(position, 24, "Bush")
+        self.color = (34, 139, 34)  # Add a green color for bush
+        if not hasattr(Bush, "sprite"):
+            Bush.sprite = pygame.image.load("assets/Bush.png").convert_alpha()
+        self.sprite = Bush.sprite
 
-class Tree(Plant):
-    def __init__(self, position: Vector2, size: float = 22, nutritionalValue: float = 120):
-        super().__init__(position, size, nutritionalValue)
-        self.color = (0, 100, 0)  # Dark green
+    def update(self, deltaTime: float, world: 'GameWorld'):
+        pass  # Bush does not need to update
+
+    def render(self, surface, camera):
+        screenPos = camera.worldToScreen(self.position)
+        size = int(self.size * camera.zoom)
+        scaled_sprite = pygame.transform.scale(self.sprite, (size, size))
+        surface.blit(scaled_sprite, (screenPos.x, screenPos.y))
+
+class Tree(Entity):
+    def __init__(self, position: Vector2):
+        super().__init__(position, 40, "Tree")
+        self.color = (0, 100, 0)  # Add a dark green color for tree
+        if not hasattr(Tree, "sprite"):
+            Tree.sprite = pygame.image.load("assets/Tree.png").convert_alpha()
+        self.sprite = Tree.sprite
+
+    def update(self, deltaTime: float, world: 'GameWorld'):
+        pass  # Tree does not need to update
+
+    def render(self, surface, camera):
+        screenPos = camera.worldToScreen(self.position)
+        size = int(self.size * camera.zoom)
+        scaled_sprite = pygame.transform.scale(self.sprite, (size, size))
+        surface.blit(scaled_sprite, (screenPos.x, screenPos.y))
 
