@@ -109,14 +109,12 @@ class GameWorld:
         return result
 
     def update(self, deltaTime: float):
-        for entity_list in self.entities.values():
+        for entity_type, entity_list in self.entities.items():
+            # Remove dead animals before updating
+            if entity_type in ['Bison', 'Zebra', 'Antelope', 'Lion', 'Hyena', 'Crocodile', 'Herbivore', 'Carnivore']:
+                self.entities[entity_type] = [e for e in entity_list if not getattr(e, 'is_dead', False)]
             for entity in entity_list:
                 entity.update(deltaTime, self)
-        # for jeep in self.entities.get("Jeep", []):
-        #     # Check if jeep has reached the end of the road
-        #     if hasattr(self, "road_exit") and jeep.position == self.road_exit:
-        #         if self.economy:
-        #             self.economy.add_money(100)  # Add money when jeep completes tour
 
     def add_road(self):
         """Generate a single wide road from left to right, only in the central 50% of the map height."""

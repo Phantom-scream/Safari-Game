@@ -33,11 +33,12 @@ class Animal(Entity, ABC):
         self.drinking_timer = None  # Timer to track drinking duration
         self.last_drink_time = 0
         self.drink_cooldown = 2.0  # seconds to wait before drinking again
+        self.drink_cooldown_timer = 0  # Add this line
         self.last_water_position = None  # Add this line
         self.hungry_level = 100  # New attribute: hunger level (max 100)
         self.eating_timer = None  # Timer to track eating duration
         self.age = random.uniform(0, 10)  # Set a random age between 0 and 10 years
-
+        self.drinking_elapsed = 0  # Add this line
 
         if type(self).__name__ not in Animal.species_list:
             Animal.species_list.append(type(self).__name__)
@@ -101,7 +102,8 @@ class Animal(Entity, ABC):
             for plant_type in ['Bush', 'Tree']:
                 for plant in world.entities.get(plant_type, []):
                     if self.position.distanceTo(plant.position) < max(self.size, plant.size):
-                        self.eating_timer = time.time()
+                        self.eating_timer = True
+                        self.eating_elapsed = 0
                         world.removeEntity(plant)
                         print(f"{self.entityType} at {self.position} started eating a {plant_type}.")
                         return
@@ -130,7 +132,8 @@ class Animal(Entity, ABC):
 
     def drink_water(self, water_position):
         if self.drinking_timer is None:
-            self.drinking_timer = time.time()
+            self.drinking_timer = True  # Use a boolean or any non-None value
+            self.drinking_elapsed = 0
             self.last_water_position = water_position
 
     def update(self, deltaTime: float, world: 'GameWorld'):
@@ -148,10 +151,12 @@ class Animal(Entity, ABC):
         
         # Handle drinking timer
         if self.drinking_timer is not None:
-            if time.time() - self.drinking_timer >= 1:  # <-- Drink for only 1 second
+            self.drinking_elapsed += deltaTime
+            if self.drinking_elapsed >= 1:  # 1 simulated second
                 self.thirst_level = 100
                 self.drinking_timer = None
-                self.last_drink_time = time.time()
+                self.drinking_elapsed = 0
+                self.drink_cooldown_timer = self.drink_cooldown  # Start cooldown
                 # Set a new target AWAY from water
                 if self.last_water_position:
                     dx = self.position.x - self.last_water_position.x
@@ -171,17 +176,16 @@ class Animal(Entity, ABC):
             else:
                 return
 
+        # Decrement drink cooldown timer
+        if self.drink_cooldown_timer > 0:
+            self.drink_cooldown_timer -= deltaTime
+            if self.drink_cooldown_timer < 0:
+                self.drink_cooldown_timer = 0
+
         # After drinking logic, before allowing to drink again:
-        if time.time() - self.last_drink_time < self.drink_cooldown or (
+        if self.drink_cooldown_timer > 0 or (
             self.last_water_position and self.position.distanceTo(self.last_water_position) < self.size * 2
         ):
-            # Skip drinking logic, allow movement away
-            self.move(deltaTime, world)
-            return
-
-        # Prevent immediate re-drinking after cooldown
-        if time.time() - self.last_drink_time < self.drink_cooldown:
-            # Skip drinking logic, allow movement away
             self.move(deltaTime, world)
             return
 

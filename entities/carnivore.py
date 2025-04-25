@@ -74,10 +74,12 @@ class Carnivore(Animal):
         if self.hunger_level < 30:
             if not self.hunting_target:
                 self.find_prey(world)
-            self.hunt_prey(deltaTime, world)
-            return  # Skip other behaviors while hunting
+            if self.hunting_target:
+                self.hunt_prey(deltaTime, world)
+                return  # Only return early if actually hunting
+            # If no prey found, fall through to normal behavior
 
-        # Continue with normal behavior
+        # Continue with normal behavior (move, drink, etc.)
         super().update(deltaTime, world)
 
     def render(self, surface: pygame.Surface, camera: 'Camera'):
