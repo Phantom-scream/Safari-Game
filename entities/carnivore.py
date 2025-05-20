@@ -31,10 +31,12 @@ class Carnivore(Animal):
             print(f"{self.entityType} is hunting {nearest_prey.entityType} at {nearest_prey.position}.")
         else:
             self.hunting_target = None
-            self.target = Vector2(
-                self.position.x + random.uniform(-200, 200),
-                self.position.y + random.uniform(-200, 200)
-            )
+            # Only pick a new random target if close to the previous one
+            if self.position.distanceTo(self.target) < 10:
+                self.target = Vector2(
+                    self.position.x + random.uniform(-200, 200),
+                    self.position.y + random.uniform(-200, 200)
+                )
             print(f"{self.entityType} could not find any prey nearby, wandering randomly.")
 
     def hunt_prey(self, deltaTime: float, world):
@@ -63,8 +65,14 @@ class Carnivore(Animal):
         if self.hunger_level < 30:
             if not self.hunting_target:
                 self.find_prey(world)
-            self.hunt_prey(deltaTime, world)
-            return
+            if self.hunting_target:
+                self.hunt_prey(deltaTime, world)
+                return
+            else:
+                # No prey found, wander randomly
+                self.move(deltaTime, world)
+                return
+        # Not hungry, behave like a normal animal
         super().update(deltaTime, world)
 
     def render(self, surface: pygame.Surface, camera: 'Camera'):
