@@ -39,6 +39,7 @@ class Animal(Entity, ABC):
         self.eating_timer = None  # Timer to track eating duration
         self.age = random.uniform(0, 10)  # Set a random age between 0 and 10 years
         self.drinking_elapsed = 0  # Add this line
+        self.visible = True  # Add this line
 
         if type(self).__name__ not in Animal.species_list:
             Animal.species_list.append(type(self).__name__)
@@ -278,6 +279,8 @@ class Animal(Entity, ABC):
         self.is_dead = True
 
     def render(self, surface: pygame.Surface, camera: 'Camera'):
+        if not self.visible:
+            return  # Do not render if not visible
         screenPos = camera.worldToScreen(self.position)
         size = self.size * camera.zoom  # Scale size by zoom
         pygame.draw.rect(surface, self.color, (screenPos.x, screenPos.y, size, size))

@@ -116,6 +116,7 @@ class Poacher(Entity):
         if closest_animal:
             self.has_captured_animal = closest_animal
             self.has_captured_animal.mark_as_dead()  # Mark as dead immediately
+            self.has_captured_animal.visible = False  # Make animal invisible
             print(f"Poacher captured {closest_animal.entityType} at {closest_animal.position}")
             self.last_hunt_time = current_time
             self.state = "escaping"
