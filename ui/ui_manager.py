@@ -15,6 +15,7 @@ PRICES = {
     "Hyena": 70,
     "Crocodile": 180,
     "Jeep": 300,
+    "Road": 100,  # Add this line
 }
 
 class UIComponent:
@@ -81,7 +82,7 @@ class ShopMenu:
     def __init__(self, ui_manager):
         self.ui_manager = ui_manager
         self.width = 180
-        self.height = 340
+        self.height = 370  # Increased to fit all buttons
         self.x = 50
         self.y = 80
         self.font = pygame.font.Font(None, 18)
@@ -101,11 +102,13 @@ class ShopMenu:
         self.animals_y = self.animals_title_y + 24  
         self.animal_names = ["Antelope", "Zebra", "Bison", "Lion", "Hyena", "Crocodile"]
         for i, name in enumerate(self.animal_names):
-            self.buttons.append(Button(name, (button_x, self.animals_y + i * 24), (90, button_h), lambda n=name: self.purchase(n)))
+            self.buttons.append(Button(name, (button_x, self.animals_y + i * 24), (button_w, button_h), lambda n=name: self.purchase(n)))
 
         self.jeep_title_y = self.animals_y + len(self.animal_names) * 24 + 10
         self.jeep_y = self.jeep_title_y + 24
-        self.buttons.append(Button("Jeep", (button_x, self.jeep_y), (90, button_h), lambda: self.purchase("Jeep")))
+        self.buttons.append(Button("Jeep", (button_x, self.jeep_y), (button_w, button_h), lambda: self.purchase("Jeep")))
+        # Place Road button directly below Jeep button, same width and spacing
+        self.buttons.append(Button("Road", (button_x, self.jeep_y + 26), (button_w, button_h), lambda: self.purchase("Road")))
 
     def render(self, surface):
         pygame.draw.rect(surface, (245, 245, 220), (self.x, self.y, self.width, self.height), border_radius=10)
@@ -139,21 +142,21 @@ class ShopMenu:
 
         if item_name == "Jeep":
             entrance = game.world.road_entrance
-            road_path = sorted(game.world.entities["Road"], key=lambda r: r.position.x)
-            if not (entrance and road_path):
-                self.message = "No road entrance!"
+            # Only use visible road segments
+            visible_road_segments = [seg for seg in game.world.road_segments if seg and seg[0].visible]
+            if not visible_road_segments:
+                self.message = "No visible road!"
                 self.message_time = time.time()
                 return
+            import random
+            road_path = random.choice(visible_road_segments)
             if game.economy.money < price:
                 self.message = "Not enough balance!"
                 self.message_time = time.time()
                 return
             game.economy.spend_money(price)
-            spacing = 50
-            num_jeeps = len(game.world.entities["Jeep"])
-            offset = num_jeeps * spacing
-            jeep_pos = Vector2(entrance.x + offset, entrance.y)
             from entities.jeep import Jeep
+            jeep_pos = road_path[0].position
             new_jeep = Jeep(jeep_pos, [r.position for r in road_path])
             new_jeep.current_index = 0
             new_jeep.state = "to_exit"
@@ -163,6 +166,28 @@ class ShopMenu:
             self.message = "Purchased Jeep! It's on the road."
             self.message_time = time.time()
             game.renderer.camera.moveTo(new_jeep.position)
+            return
+
+        if item_name == "Road":
+            world = game.world
+            if len(world.road_segments) == 0:
+                self.message = "No valid roads could be placed on this map!"
+                self.message_time = time.time()
+                return
+            if world.visible_roads >= len(world.road_segments):
+                self.message = "Maximum 3 roads allowed!"
+                self.message_time = time.time()
+                return
+            if game.economy.money < price:
+                self.message = "Not enough balance!"
+                self.message_time = time.time()
+                return
+            game.economy.spend_money(price)
+            for road in world.road_segments[world.visible_roads]:
+                road.visible = True
+            world.visible_roads += 1
+            self.message = f"Purchased Road {world.visible_roads}!"
+            self.message_time = time.time()
             return
 
         if game.economy.money < price:

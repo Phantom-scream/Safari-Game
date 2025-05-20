@@ -9,11 +9,14 @@ class Road(Entity):
     def __init__(self, position: Vector2, size: float):
         super().__init__(position, size, 'Road')
         self.color = (139, 101, 8)
+        self.visible = False  # Add this line
 
     def update(self, deltaTime: float, world: 'GameWorld'):
         pass
 
     def render(self, surface: pygame.Surface, camera: 'Camera'):
+        if not getattr(self, "visible", True):
+            return
         screen_pos = camera.worldToScreen(self.position)
         road_width = self.size * camera.zoom
         road_height = self.size * camera.zoom
