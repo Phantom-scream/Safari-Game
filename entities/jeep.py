@@ -2,6 +2,11 @@ from entities.entity import Entity
 from ui.vector2 import Vector2
 from entities.tourist import Tourist
 import pygame
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from gamelogic.game_world import GameWorld
+    from ui.camera import Camera
+
 
 class Jeep(Entity):
     def __init__(self, position, road_path):
