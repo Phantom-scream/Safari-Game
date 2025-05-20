@@ -1,6 +1,11 @@
 from abc import ABC, abstractmethod
 from ui.vector2 import Vector2
 import pygame
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from gamelogic.game_world import GameWorld
+    from ui.camera import Camera
+
 
 class Entity(ABC):
     def __init__(self, position: Vector2, size: float, entityType: str):

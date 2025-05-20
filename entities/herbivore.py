@@ -2,21 +2,23 @@ import pygame
 import time
 from entities.animal import Animal
 from ui.vector2 import Vector2
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from gamelogic.game_world import GameWorld
+    from ui.camera import Camera
 
 class Herbivore(Animal):
     def __init__(self, position: Vector2, size: float, speed: float):
         super().__init__(position, size, 'Herbivore', speed)
-        self.eating_elapsed = 0
 
     def update(self, deltaTime: float, world: 'GameWorld'):
         if self.is_dead:
             return
 
+        # Use timestamp for eating_timer
         if self.eating_timer is not None:
-            self.eating_elapsed += deltaTime
-            if self.eating_elapsed >= 3:
+            if time.time() - self.eating_timer >= 3:
                 self.eating_timer = None
-                self.eating_elapsed = 0
                 self.hungry_level = 100
                 print(f"{self.entityType} at {self.position} finished eating and resumed moving.")
             else:
@@ -37,8 +39,7 @@ class Herbivore(Animal):
             for plant_type in ['Bush', 'Tree']:
                 for plant in world.entities.get(plant_type, []):
                     if self.position.distanceTo(plant.position) < self.size:
-                        self.eating_timer = True
-                        self.eating_elapsed = 0
+                        self.eating_timer = time.time()  # <-- Use timestamp!
                         world.removeEntity(plant)
                         print(f"{self.entityType} ate a {plant_type} at {plant.position}.")
                         return

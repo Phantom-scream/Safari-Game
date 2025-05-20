@@ -5,6 +5,10 @@ import pygame
 import math
 import time
 from gamelogic.settings import WORLD_WIDTH, WORLD_HEIGHT
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from gamelogic.game_world import GameWorld
+    from ui.camera import Camera
 
 class Poacher(Entity):
     def __init__(self, position: Vector2, size: float, speed: float):
@@ -112,6 +116,7 @@ class Poacher(Entity):
         if closest_animal:
             self.has_captured_animal = closest_animal
             self.has_captured_animal.mark_as_dead()  # Mark as dead immediately
+            self.has_captured_animal.visible = False  # Make animal invisible
             print(f"Poacher captured {closest_animal.entityType} at {closest_animal.position}")
             self.last_hunt_time = current_time
             self.state = "escaping"
