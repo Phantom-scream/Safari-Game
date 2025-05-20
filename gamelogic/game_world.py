@@ -103,7 +103,10 @@ class GameWorld:
         return result
 
     def update(self, deltaTime: float):
-        for entity_list in self.entities.values():
+        for entity_type, entity_list in self.entities.items():
+            # Remove dead animals before updating
+            if entity_type in ['Bison', 'Zebra', 'Antelope', 'Lion', 'Hyena', 'Crocodile', 'Herbivore', 'Carnivore']:
+                self.entities[entity_type] = [e for e in entity_list if not getattr(e, 'is_dead', False)]
             for entity in entity_list:
                 entity.update(deltaTime, self)
 
