@@ -6,7 +6,7 @@ from ui.main_screen import MainScreen
 def patch_pygame(monkeypatch):
     pygame.display.init()
     pygame.display.set_mode((800, 600))
-    pygame.font.init()  # <-- Add this line!
+    pygame.font.init() 
     dummy_surface = pygame.Surface((300, 300))
     monkeypatch.setattr(pygame.image, "load", lambda *a, **k: dummy_surface)
     monkeypatch.setattr(pygame.transform, "scale", lambda surf, size: dummy_surface)
