@@ -1,78 +1,89 @@
-Team name: Dolma.
-Team members: Aliev Aikhan, Hasanli Ramal, Hajiyev Hajiaga.
-Game Description:
-The game is a 2D top-down safari management simulation where players run an African wildlife park. Players must manage animals, build infrastructure, and attract tourists to generate income. The game features dynamic animal behavior, poachers, and procedurally generated maps. Players can adjust game speed (hour/day/week), place plants and water sources, and handle financial decisions. The goal is to maintain a thriving safari while preventing extinction and bankruptcy.
-SubTasks:
+# 🐘 Safari Park Simulator
 
-Mini map
-Poachers
-Map Generation
-Terrain Obstacles
-Day-Night Cycle(for the 4th milestone.)
+**Team Name:** Dolma  
+**Team Members:** Aliev Aikhan, Hasanli Ramal, Hajiyev Hajiaga  
 
-Functional Requirements:
-Safari Park Management
+## 🎮 Game Description
 
-Players can purchase animals, plants, roads, and jeeps.
-Animals behave autonomously, seeking food, water, and safety.
-Tourists rent jeeps to explore the safari, generating revenue.
+Safari Park Simulator is a 2D top-down wildlife management game where players run an African safari park. You’ll manage animal populations, build infrastructure, attract tourists, and protect your park from poachers—all while ensuring the ecosystem thrives.
 
-Mini Map Functionality
+Key gameplay features include:
+- Dynamic animal behavior
+- Real-time strategy mechanics
+- Randomly generated maps
+- Poacher threats and park defense
+- Scalable time controls (hour/day/week)
+- Financial and ecological balance
 
-Displays an overview of the safari.
-Clickable areas allow quick navigation.
-Updates in real-time to reflect environmental changes.
+---
 
-Poacher System
+## 🧩 Subtasks & Features
 
-Poachers appear randomly and attempt to hunt or capture animals.
+### ✅ Core Gameplay
+- **Safari Park Management:** Buy animals, place resources, and build roads/jeeps.
+- **Autonomous Animals:** Seek food, water, and safety on their own.
+- **Tourist Interaction:** Tourists explore the park via rented jeeps, generating income.
 
-Procedural Map Generation
+### 🗺 Mini Map
+- Real-time overview of the park
+- Clickable for fast navigation
 
-The game generates different maps for each session, affecting replayability.
-Algorithms ensure logical placement of terrain, water, and foliage.
+### 🦹 Poachers
+- Appear randomly
+- Attempt to hunt or capture animals
 
-Terrain Obstacles Implementation
+### 🌍 Procedural Map Generation
+- Unique layout for every game session
+- Logical placement of terrain, water, and foliage
 
-Hills and rivers affect movement and visibility.
-Certain animals may traverse obstacles more easily than others.
-Pathfinding accounts for different terrain difficulties.
+### 🧱 Terrain Obstacles
+- Includes hills and rivers
+- Affects movement, visibility, and pathfinding
+- Terrain difficulty varies per animal species
 
-Day-Night Cycle Mechanics
+### 🌙 Day-Night Cycle *(4th Milestone)*
+- Real-time cycling of day and night
+- Affects gameplay dynamics
 
-The game cycles between day and night dynamically.
+### 🎯 Win/Loss Conditions
+- **Win:** Sustain a stable, profitable park for a set duration
+- **Loss:** All animals die or you go bankrupt
 
-Game Win/Loss Conditions
+---
 
-Players win by maintaining a stable safari for a certain period, based on difficulty.
-The game ends if all animals die or if the player goes bankrupt.
+## 📋 Functional Requirements
 
-Non-Functional Requirements:
-Technology Stack
+- **Purchasables:** Animals, plants, roads, jeeps
+- **Real-time Map Updates:** Mini map reflects environment changes
+- **Autonomous AI:** Animals and poachers behave independently
+- **Pathfinding:** Accounts for terrain type and obstacles
+- **Navigation:** Keyboard + mouse input
+- **UI:** Clear layout, accessible fonts/colors, tooltips
 
-Programming Language: Python
-Game Engine/Library: Pygame (for 2D graphics and event handling)
+---
 
-Performance Requirements
+## 🛠 Non-Functional Requirements
 
-The game run at a minimum of 30 FPS.
-Efficient memory management to handle large maps and dynamic elements.
-AI (such as animal movement and poacher behavior).
+### ⚙ Technology Stack
+- **Language:** Python  
+- **Engine/Library:** Pygame (2D rendering & event handling)  
+- **UI:** Pygame UI / Tkinter (menus, buttons)
 
-Usability and UI
+### 🚀 Performance
+- Minimum 30 FPS
+- Memory-efficient design for large, active maps
+- Optimized AI logic for real-time decision-making
 
-User Interface: Tkinter or Pygame’s built-in UI elements for menus and buttons.
-Input Handling: Keyboard and mouse support for navigation and interaction.
-Accessibility: Clear font sizes, distinguishable colors, and tooltips for game elements.
+### 💻 Usability & Accessibility
+- Responsive controls
+- Tooltips for interface elements
+- Distinct, readable visuals
 
-Scalability
+### 📈 Scalability
+- Supports various map sizes without FPS drops
+- Modular architecture for future expansions
 
-The game supports different map sizes without significant performance drops.
-Modular code structure to allow easy expansion (adding more animals, new obstacles).
-The AI system is designed for scalability, allowing for more complex behaviors in future updates.
-
-Graphics & Rendering
-
-Sprite-based 2D rendering using Pygame.
-Optimization techniques like sprite batching and pre-loading assets to reduce lag.
-Animations for animals and vehicles to enhance visual appeal.
+### 🖼 Graphics & Rendering
+- Sprite-based 2D rendering using Pygame
+- Techniques like sprite batching and pre-loading assets
+- Animated animals and vehicles to enhance immersion
